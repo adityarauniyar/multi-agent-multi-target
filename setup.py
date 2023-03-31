@@ -4,12 +4,13 @@ import re
 
 from setuptools import find_packages, setup
 
+
+print("Checking version...")
 with open("gym/version.py") as file:
     full_version = file.read()
-    assert (
-            re.match(r'VERSION = "\d\.\d+\.\d+"\n', full_version).group(0) == full_version
-    ), f"Unexpected version: {full_version}"
-    VERSION = re.search(r"\d\.\d+\.\d+", full_version).group(0)
+    matched_version = re.match(r'VERSION = "\d\.\d+\.\d+"', full_version).group()
+    assert (matched_version == full_version), "Unexpected version: {}".format(full_version)
+    VERSION = re.search(r"\d\.\d+\.\d+", full_version).group()
 
 # Environment-specific dependencies.
 extras = {
