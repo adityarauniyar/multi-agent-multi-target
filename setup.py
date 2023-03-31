@@ -49,6 +49,8 @@ setup(
     extras_require=extras,
     install_requires=[
         "numpy >= 1.18.0",
+        "open3d == 0.17.0",
+
     ],
     license="MIT",
     long_description=long_description,
@@ -57,7 +59,7 @@ setup(
     packages=[package for package in find_packages() if package.startswith("gym")],
     package_data={
         "gym": [
-            "envs/hawkins-2d-map/*.bin",
+            "envs/hawkins-2d-map/pointclouds/*.txt",
         ]
     },
     python_requires=">=3.6",
