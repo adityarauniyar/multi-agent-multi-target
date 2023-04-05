@@ -31,6 +31,7 @@ def getObstacleMapFromPointcloud(pointcloud_filename, grid_size):
         y_index = int(np.floor((point[1] - y_min) / grid_size))
         obstacle_map[y_index, x_index] = 1
 
+    # TODO: Create coordinates map that stores the relative coordinates of points
     return obstacle_map
 
 
