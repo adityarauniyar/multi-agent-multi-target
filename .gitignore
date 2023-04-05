@@ -1,2 +1,4 @@
 .idea
 .vscode
+gym/envs/hawkins-2d-map/pointclouds/*.txt
+gym/envs/hawkins-2d-map/grid-maps/*.npy
