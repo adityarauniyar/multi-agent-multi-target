@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
 
 
 def getObstacleMapFromPointcloud(pointcloud_filename, grid_size):
@@ -40,3 +41,16 @@ def displayMap(grid_map):
     # Plot the grid as an image
     plt.imshow(grid_map, cmap='gray')
     plt.show()
+
+
+def savePNGFromNumpy(numpy_array, output_img_filename):
+    # convert the numpy array to PIL Image
+    img = Image.fromarray((numpy_array * 255).astype(np.uint8), mode='L')
+
+    # save the image as PNG file
+    img.save(output_img_filename)
+
+
+def saveNumpyAsNPY(numpy_array, output_filename):
+    # save the numpy array in the output_filename
+    np.save(output_filename, numpy_array)
