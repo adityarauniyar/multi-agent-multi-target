@@ -7,12 +7,6 @@ class VehicleType(Enum):
     TRUCK = 3
 
 
-class LookScore(Enum):
-    NOT_GOOD = 0
-    GOOD = 1
-    WOW = 3
-
-
 class Vehicle:
     def __init__(self, look_score, location, orientation, vehicle_type):
         self.look_score = look_score
