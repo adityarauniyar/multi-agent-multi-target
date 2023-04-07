@@ -12,12 +12,6 @@ class Color(Enum):
     YELLOW = 4
 
 
-class LookScore(Enum):
-    NOT_GOOD = 0
-    GOOD = 1
-    WOW = 3
-
-
 def getObstacleMapFromPointcloud(pointcloud_filename, grid_size):
     """
     :param pointcloud_filename: relative filename of the pointcloud
