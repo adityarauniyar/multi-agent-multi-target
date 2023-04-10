@@ -1,5 +1,6 @@
 from space import Space
 import numpy as np
+from math import floor
 
 
 class DroneSpace(Space):
@@ -15,7 +16,8 @@ class DroneSpace(Space):
             operational_map=None,
             start_position=(0, 0, 0),
             viewing_angle=90.0,
-            viewing_range=15.0
+            viewing_range=15.0,
+            observation_square_size=10
     ):
         """
         :param grid_size: float, the size of the grid.
@@ -30,6 +32,8 @@ class DroneSpace(Space):
         # TODO: Use the optimal height and angle for filming actors paper to come up with the viewing range.
         #  Viewing range instead can be replace with the Lens description like MP or Focal Length.
         self.viewing_range = viewing_range  # range of the drone's camera view
+
+        self.observation_space_size = observation_square_size
 
     @property
     def current_cam_coverage_locations(self):
@@ -91,3 +95,62 @@ class DroneSpace(Space):
         arc_centerline_angle_deg = self.current_position[2]
 
         return circle_center_x, circle_center_y, circle_radius, circle_arc_in_deg, arc_centerline_angle_deg
+
+    def get_current_observation_channels(self, current_agents_position_arr, current_actor_position_arr):
+        current_actor_x, current_actor_y, current_actor_orientation = self.current_position
+
+        # Get the observation channel origin
+        relative_observation_window_origin_x = floor(current_actor_x - (self.observation_space_size / 2.0))
+        relative_observation_window_origin_y = floor(current_actor_y - (self.observation_space_size / 2.0))
+
+        # Get the observation channel window top coordinates
+        relative_observation_window_top_x = int(relative_observation_window_origin_x + self.observation_space_size)
+        relative_observation_window_top_y = int(relative_observation_window_origin_y + self.observation_space_size)
+
+        # Stores location as True for those that has obstacles
+        obstacle_map = np.ones((self.observation_space_size, self.observation_space_size))
+
+        # Stores all the locations as False for those that doesn't have agents on it.
+        agents_position_map = np.zeros((self.observation_space_size, self.observation_space_size))
+
+        # Stores all the locations as False by default that doesn't have neighbours goal position projected.
+        neighbours_goal_map = np.zeros((self.observation_space_size, self.observation_space_size))
+
+        # Stores all the locations as False by default that doesn't have agents goals, no projection is used to
+        # update this
+        agent_goal_map = np.zeros((self.observation_space_size, self.observation_space_size))
+
+        for y in range(relative_observation_window_origin_y, relative_observation_window_top_y + 1):
+            for x in range(relative_observation_window_origin_x, relative_observation_window_top_x + 1):
+
+                # Check if the window is inside the operational map
+                if x or y < 0:
+                    # Continue if this location is outside the main map
+                    continue
+                else:
+
+                    current_map_x = x + relative_observation_window_origin_x
+                    current_map_y = y + relative_observation_window_origin_y
+
+                    current_window_x = x - relative_observation_window_origin_x
+                    current_window_y = y - relative_observation_window_origin_y
+
+                    if self.operational_map[current_map_x, current_map_y]:
+                        obstacle_map[current_window_x, current_window_y] = 0
+
+                    if (current_map_x, current_map_y) in current_agents_position_arr:
+                        agents_position_map[current_window_x, current_window_y] = 1
+
+                    # QUES: Should we keep track of which drone is going to which actor or just come up with the
+                    # actor locations as the drone goal locations
+
+                    if (current_map_x, current_map_y) in current_actor_position_arr:
+                        neighbours_goal_map[current_window_x, current_window_y] = 1
+
+                    # Right now taking all the actor location as .self drone goal location
+                    if (current_map_x, current_map_y) in current_actor_position_arr:
+                        agent_goal_map[current_window_x, current_window_y] = 1
+
+        observation_channel = np.array([obstacle_map, agents_position_map, neighbours_goal_map, agent_goal_map])
+
+        return observation_channel
