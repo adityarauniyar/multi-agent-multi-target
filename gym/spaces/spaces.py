@@ -18,8 +18,6 @@ class Space:
             grid_size=1.0,
             operational_map=None,
             start_position=(0, 0, 0),
-            viewing_angle=90,
-            viewing_range=15
     ):
         """
         Initializes the attributes of the Space class.
@@ -28,17 +26,13 @@ class Space:
         * grid_size: float, the size of the grid.
         * operational_map: array, the size of the 2D grid environment.
         * start_position: tuple (x,y, orientation), the starting position of the drone .
-        * viewing_angle: int, the angle of the drone's camera view.
-        * viewing_range: int, the range of the drone's camera view.
         """
         self.grid_size = grid_size
         self.operational_map = operational_map
-        self._map_height = np.shape(operational_map)[0]  # Obstacle map height
-        self._map_width = np.shape(operational_map)[1]  # Obstacle map width
+        self.map_height = np.shape(operational_map)[0]  # Obstacle map height
+        self.map_width = np.shape(operational_map)[1]  # Obstacle map width
         self.start_position = start_position
         self.current_position = start_position  # current position
-        self.viewing_angle = viewing_angle  # angle of the drone's camera view
-        self.viewing_range = viewing_range  # range of the drone's camera view
         self.translation_dirs = [(0, 0),  # stay in place
                                  (1, 0), (-1, 0),  # move north/south/east/west
                                  (0, 1), (0, -1),
@@ -48,8 +42,8 @@ class Space:
         self.total_translation_dirs = len(self.translation_dirs)
 
         # rotational directions in degrees
-        self.rotation_dirs = [45, 90, 135, 180,  # Rotations in right, clockwise as positive
-                              -45, -90, -135, -180]  # Rotations in left, counter-clockwise as negative
+        self.rotation_dirs = [45, 90, 135, 180,  # Rotations in left, counter-clockwise as positive
+                              -45, -90, -135, -180]  # Rotations in right, clockwise as negative
         self.total_rotation_dirs = len(self.rotation_dirs)
 
     def translation_move(self, current_location, translation_sequence):
