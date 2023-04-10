@@ -1,4 +1,4 @@
-from spaces import Space
+from space import Space
 import numpy as np
 
 
