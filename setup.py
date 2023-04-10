@@ -14,7 +14,7 @@ with open("gym/version.py") as file:
 
 # Environment-specific dependencies.
 extras = {
-    "hawkins-2d-map": [""],
+    "hawkins2DMap": [""],
 }
 
 # Testing dependency groups.
@@ -59,7 +59,7 @@ setup(
     packages=[package for package in find_packages() if package.startswith("gym")],
     package_data={
         "gym": [
-            "envs/hawkins-2d-map/pointclouds/*.txt",
+            "envs/hawkins2DMap/pointclouds/*.txt",
         ]
     },
     python_requires=">=3.6",

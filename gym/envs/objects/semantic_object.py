@@ -48,7 +48,7 @@ class SemanticObject:
 
         # Create a table to store the RGB tuples of each pixel in the image.
         # Each entry of the table is a tuple of three unsigned 8-bit integers.
-        self.rgb_image_tuple_table = self.__getRGBTupleTableFromImage()
+        self.rgb_image_tuple_table = self.__get_RGBTupleTable_From_Image()
 
         # Create a hash table to store whether each pixel contains the object of interest.
         # The hash table maps (i,j) coordinates to True if the corresponding pixel contains
