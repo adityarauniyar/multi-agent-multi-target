@@ -1,6 +1,7 @@
-from space import Space
-import numpy as np
+from gym.spaces.space import Space
 from math import floor
+from gym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple
+import numpy as np
 
 
 class DroneSpace(Space):
@@ -10,14 +11,15 @@ class DroneSpace(Space):
     It inherits most of the action spaces from the Space Parent class.
     """
 
-    def __int__(
+    def __init__(
             self,
-            grid_size=1.0,
-            operational_map=None,
-            start_position=(0, 0, 0),
-            viewing_angle=90.0,
-            viewing_range=15.0,
-            observation_square_size=10
+            grid_size: float = 1.0,
+            operational_map: np.ndarray = np.ones((3, 3)),
+            start_position: ThreeIntTuple = (0, 0, 0),
+            viewing_angle: float = 90.0,
+            viewing_range: float = 15.0,
+            observation_space_size: int = 10,
+            agent_id: int = 0
     ):
         """
         :param grid_size: float, the size of the grid.
@@ -26,17 +28,24 @@ class DroneSpace(Space):
         :param viewing_angle: int, the angle of the drone's camera view.
         :param viewing_range: int, the range of the drone's camera view.
         """
-        super(DroneSpace, self).__init__(grid_size, operational_map, start_position)
+
+        super().__init__(
+            grid_size=grid_size,
+            operational_map=operational_map,
+            start_position=start_position)
 
         self.viewing_angle = viewing_angle  # angle of the drone's camera view
         # TODO: Use the optimal height and angle for filming actors paper to come up with the viewing range.
         #  Viewing range instead can be replace with the Lens description like MP or Focal Length.
         self.viewing_range = viewing_range  # range of the drone's camera view
 
-        self.observation_space_size = observation_square_size
+        self.observation_space_size = observation_space_size
+
+        self.agent_id = agent_id
+
 
     @property
-    def current_cam_coverage_locations(self):
+    def current_cam_coverage_locations(self) -> TwoIntTupleList:
         # Return the camera coverage locations based on the camera location, angle and camera range
         circle_center_x, circle_center_y, circle_radius, circle_arc_in_deg, arc_centerline_angle_deg = self.get_camera_coverage_definition()
 
@@ -56,7 +65,7 @@ class DroneSpace(Space):
 
                 # Check if the grid element is within the radius and angle.
                 if dist <= circle_radius:
-                    self.camera_coverage_grid[i, j] = True
+                    camera_coverage_grid[i, j] = True
                     # TODO: Add logic to only mark those pixels as True that falls under the camera viewing angle.
                     # Assuming zero deg of the centerline is facing towards x-axis
                     # grid_angle_in_rad = np.pi / 2 - np.arc-tan2(dy, dx)
@@ -80,7 +89,7 @@ class DroneSpace(Space):
 
         return locations
 
-    def get_camera_coverage_definition(self):
+    def get_camera_coverage_definition(self) -> Tuple[int, int, float, float, int]:
         """
 
         :return: x, y, radius, arc_angle_in_deg
@@ -96,7 +105,11 @@ class DroneSpace(Space):
 
         return circle_center_x, circle_center_y, circle_radius, circle_arc_in_deg, arc_centerline_angle_deg
 
-    def get_current_observation_channels(self, current_agents_position_arr, current_actor_position_arr):
+    def get_current_observation_channels(
+            self,
+            current_agents_position_arr: TwoIntTupleList,
+            current_actor_position_arr: TwoIntTupleList
+    ) -> np.ndarray:
         current_actor_x, current_actor_y, current_actor_orientation = self.current_position
 
         # Get the observation channel origin
@@ -154,3 +167,22 @@ class DroneSpace(Space):
         observation_channel = np.array([obstacle_map, agents_position_map, neighbours_goal_map, agent_goal_map])
 
         return observation_channel
+
+
+class DronesSpace:
+    def __init__(
+            self,
+            grid_size=1.0,
+            operational_map=None,
+            start_position=(0, 0, 0),
+            viewing_angle=90.0,
+            viewing_range=15.0,
+            observation_square_size=10,
+            num_agents=1
+    ):
+        self.drone = []
+        for agentID in range(num_agents):
+            self.drone.append(DroneSpace(grid_size, operational_map, start_position, viewing_angle, viewing_range,
+                                         observation_square_size, agentID))
+
+
