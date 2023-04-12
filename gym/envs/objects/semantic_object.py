@@ -48,12 +48,12 @@ class SemanticObject:
 
         # Create a table to store the RGB tuples of each pixel in the image.
         # Each entry of the table is a tuple of three unsigned 8-bit integers.
-        self.rgb_image_tuple_table = self.__get_RGBTupleTable_From_Image()
+        self.rgb_image_tuple_table = self.__get_rgb_tuple_table_from_image()
 
         # Create a hash table to store whether each pixel contains the object of interest.
         # The hash table maps (i,j) coordinates to True if the corresponding pixel contains
         # the object of interest, and False otherwise.
-        self.object_present_by_location_tuple = self.__getObjectPresenceByLocation()
+        self.presence_grid = self.__get_object_presence_table()
 
     def __read_image(self):
         """
@@ -61,7 +61,7 @@ class SemanticObject:
         """
         return Image.open(self.image_filename)
 
-    def __get_RGBTupleTable_From_Image(self):
+    def __get_rgb_tuple_table_from_image(self):
         """
         Private method that creates a table of size image height x width to store the RGB tuples
         of each pixel in the image.
@@ -79,12 +79,12 @@ class SemanticObject:
 
         return rgb_table
 
-    def __getObjectPresenceByLocation(self):
+    def __get_object_presence_table(self):
         """
         Private method that creates a hash table to store whether each pixel contains the
         object of interest.
         """
-        hash_table = {}
+        object_location_arr = np.zeros((self.image_height, self.image_width))
 
         # Iterate over each pixel in the image.
         for i in range(self.image_height):
@@ -92,8 +92,6 @@ class SemanticObject:
                 # If the RGB tuple of the pixel matches the semantic RGB value of the object,
                 # store True in the hash table. Otherwise, store False.
                 if tuple(self.rgb_image_tuple_table[i, j]) == self.semantic_rgb_tuple:
-                    hash_table[(i, j)] = True
-                else:
-                    hash_table[(i, j)] = False
+                    object_location_arr[i, j] = 1
 
-        return hash_table
+        return object_location_arr
