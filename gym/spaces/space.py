@@ -17,7 +17,7 @@ class Space:
     def __init__(
             self,
             grid_size: float = 1.0,
-            operational_map: np.ndarray = np.zeros((3, 3)),
+            operational_map: np.ndarray = np.ones((3, 3)),
             start_position: ThreeIntTuple = (0, 0, 0),
     ):
         """
@@ -34,11 +34,15 @@ class Space:
         self.map_width = np.shape(operational_map)[1]  # Obstacle map width
         self.start_position = start_position
         self.current_position = start_position  # current position
-        self.translation_dirs = [(0, 0),  # stay in place
-                                 (1, 0), (-1, 0),  # move north/south/east/west
-                                 (0, 1), (0, -1),
-                                 (1, 1), (-1, 1),  # move diagonally
-                                 (1, -1), (-1, -1)]
+        self.translation_dirs = [(0, 0),  # 0: stay in place
+                                 (1, 0),  # 1: east
+                                 (-1, 0),  # 2: west
+                                 (0, 1),  # 3: north
+                                 (0, -1),  # 4: south
+                                 (1, 1),  # 5: north-east
+                                 (-1, 1),  # 6: north-west
+                                 (1, -1),  # 7: south-east
+                                 (-1, -1)]  # 8: south-west
 
         self.total_translation_dirs = len(self.translation_dirs)
 
@@ -47,7 +51,7 @@ class Space:
                               -45, -90, -135, -180]  # Rotations in right, clockwise as negative
         self.total_rotation_dirs = len(self.rotation_dirs)
 
-    def translation_move(self, current_location, translation_sequence):
+    def get_new_translated_position_by_seq(self, translation_sequence: int) -> ThreeIntTuple:
         """
         Returns the new position of the drone after a translation move.
 
@@ -58,10 +62,14 @@ class Space:
         Returns:
         * A tuple of the new position of the drone.
         """
-        return current_location[0] + self.translation_dirs[translation_sequence][0],\
-            current_location[1] + self.translation_dirs[translation_sequence][1]
 
-    def rotation_move(self, current_orientation, rotation_sequence):
+        new_x = self.current_position[0] + self.translation_dirs[translation_sequence][0]
+        new_y = self.current_position[1] + self.translation_dirs[translation_sequence][1]
+        new_position = (new_x, new_y, self.current_position[2])
+
+        return new_position
+
+    def get_new_rotated_position_by_seq(self, rotation_sequence: int) -> ThreeIntTuple:
         """
         Returns the new orientation of the drone after a rotation move.
 
@@ -72,7 +80,10 @@ class Space:
         Returns:
         * The new orientation of the drone.
         """
-        return current_orientation + self.rotation_dirs[rotation_sequence]
+        new_orientation = self.current_position[2] + self.rotation_dirs[rotation_sequence]
+        new_position = (self.current_position[0], self.current_position[1], new_orientation)
+
+        return new_position
 
     def is_valid_action(self, new_position: ThreeIntTuple) -> bool:
         """
@@ -85,11 +96,18 @@ class Space:
         * True if the new position is a inside the operational map dimension and is on the operational location
 
         """
-        return 0 <= new_position[0] < self.map_height and \
-            0 <= new_position[1] < self.map_width and \
-            self.operational_map[new_position[0]][new_position[1]]
+        is_valid = True
 
-    def update_state(self, new_position, orientation):
+        if not 0 <= new_position[0] < self.map_height or not 0 <= new_position[1] < self.map_width:
+            is_valid = False
+        elif new_position[2] % 45 != 0:
+            is_valid = False
+        elif not self.operational_map[new_position[0]][new_position[1]]:
+            is_valid = False
+
+        return is_valid
+
+    def move_to(self, new_position: ThreeIntTuple) -> bool:
         """
         Update the current state of the drone with a new position and orientation.
 
@@ -100,5 +118,10 @@ class Space:
         Returns:
         - None
         """
-        # Update the current position with the new position and orientation
-        self.current_position = (new_position[0], new_position[1], orientation)
+        # Update the current position with the new position
+        success = False
+        if self.is_valid_action(new_position):
+            self.current_position = new_position
+            success = True
+
+        return success
