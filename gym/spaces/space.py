@@ -1,4 +1,5 @@
 import numpy as np
+from gym.utils.types import ThreeIntTuple, TwoDArray
 
 
 class Space:
@@ -15,9 +16,9 @@ class Space:
 
     def __init__(
             self,
-            grid_size=1.0,
-            operational_map=None,
-            start_position=(0, 0, 0),
+            grid_size: float = 1.0,
+            operational_map: TwoDArray = np.zeros((3, 3)),
+            start_position: ThreeIntTuple = (0, 0, 0),
     ):
         """
         Initializes the attributes of the Space class.
@@ -57,7 +58,7 @@ class Space:
         Returns:
         * A tuple of the new position of the drone.
         """
-        return current_location[0] + self.translation_dirs[translation_sequence][0], \
+        return current_location[0] + self.translation_dirs[translation_sequence][0],\
             current_location[1] + self.translation_dirs[translation_sequence][1]
 
     def rotation_move(self, current_orientation, rotation_sequence):
@@ -73,7 +74,7 @@ class Space:
         """
         return current_orientation + self.rotation_dirs[rotation_sequence]
 
-    def is_valid_action(self, new_position):
+    def is_valid_action(self, new_position: ThreeIntTuple) -> bool:
         """
         Checks if the new position is a valid action or not.
 
@@ -84,9 +85,9 @@ class Space:
         * True if the new position is a inside the operational map dimension and is on the operational location
 
         """
-        return 0 <= new_position[0] < self._map_height and \
-            0 <= new_position[1] < self._map_width and \
-            self.operational_map[(new_position[0], new_position[1])]
+        return 0 <= new_position[0] < self.map_height and \
+            0 <= new_position[1] < self.map_width and \
+            self.operational_map[new_position[0]][new_position[1]]
 
     def update_state(self, new_position, orientation):
         """
@@ -101,5 +102,3 @@ class Space:
         """
         # Update the current position with the new position and orientation
         self.current_position = (new_position[0], new_position[1], orientation)
-
-
