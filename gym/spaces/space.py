@@ -1,5 +1,5 @@
 import numpy as np
-from gym.utils.types import ThreeIntTuple, TwoDArray
+from gym.utils.types import ThreeIntTuple
 
 
 class Space:
@@ -17,7 +17,7 @@ class Space:
     def __init__(
             self,
             grid_size: float = 1.0,
-            operational_map: TwoDArray = np.zeros((3, 3)),
+            operational_map: np.ndarray = np.zeros((3, 3)),
             start_position: ThreeIntTuple = (0, 0, 0),
     ):
         """
