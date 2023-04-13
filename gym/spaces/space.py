@@ -20,6 +20,7 @@ class Space:
             grid_size: float = 1.0,
             operational_map: np.ndarray = np.ones((3, 3)),
             start_position: ThreeIntTuple = (0, 0, 0),
+            goal_position: ThreeIntTuple = (0, 0, 0),
             agent_type: AgentType = AgentType.DRONE,
             agent_id: int = 0,
     ):
@@ -33,12 +34,17 @@ class Space:
         """
         self.agent_type = agent_type
         self.agent_id = agent_id
+
         self.grid_size = grid_size
         self.operational_map = operational_map
         self.map_height = np.shape(operational_map)[0]  # Obstacle map height
         self.map_width = np.shape(operational_map)[1]  # Obstacle map width
+
         self.start_position = start_position
+        self.previous_position = start_position
         self.current_position = start_position  # current position
+        self.goal_position = goal_position
+
         self.translation_dirs = [(0, 0),  # 0: stay in place
                                  (1, 0),  # 1: east
                                  (-1, 0),  # 2: west
@@ -134,9 +140,23 @@ class Space:
         # Update the current position with the new position
         success = False
         if self.is_valid_action(new_position):
+            self.previous_position = self.current_position
             self.current_position = new_position
             success = True
-            self.logger.info(f"(Agent: {self.agent_type}, ID: {self.agent_id})  moved to new position: {self.current_position}")
+            self.logger.info(
+                f"(Agent: {self.agent_type}, ID: {self.agent_id})  moved to new position: {self.current_position}")
+
         else:
             self.logger.warning("Cannot move to new position({})".format(new_position))
+        return success
+
+    def update_goal_position(self, new_goal_position: ThreeIntTuple) -> bool:
+        success = False
+        if self.is_valid_action(new_goal_position):
+            self.goal_position = new_goal_position
+            success = True
+            self.logger.info(
+                f"(Agent: {self.agent_type}, ID: {self.agent_id})  GOAL moved to new position: {self.current_position}")
+        else:
+            self.logger.warning("Cannot move GOAL to new position({})".format(new_goal_position))
         return success

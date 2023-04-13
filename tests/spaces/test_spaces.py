@@ -25,10 +25,15 @@ class TestSpace(unittest.TestCase):
         self.assertTrue(np.array_equal(self.space.operational_map, np.ones((MAP_HEIGHT, MAP_WIDTH))))
         self.assertEqual(self.space.map_height, MAP_HEIGHT)
         self.assertEqual(self.space.map_width, MAP_WIDTH)
+
         self.assertEqual(self.space.start_position, (0, 0, 0))
         self.assertEqual(self.space.current_position, (0, 0, 0))
+        self.assertEqual(self.space.previous_position, (0, 0, 0))
+        self.assertEqual(self.space.goal_position, (0, 0, 0))
+
         self.assertEqual(self.space.total_translation_dirs, 9)
         self.assertEqual(self.space.total_rotation_dirs, 8)
+
         self.assertEqual(self.space.agent_id, 0)
         self.assertEqual(self.space.agent_type, AgentType.DRONE)
 
@@ -65,13 +70,27 @@ class TestSpace(unittest.TestCase):
 
     def test_move_to(self):
         self.assertTrue(self.space.move_to((1, 0, 0)))
+        # print(f"Current position: {self.space.current_position}; Past position: {self.space.previous_position}")
         self.assertEqual(self.space.current_position, (1, 0, 0))
+        self.assertEqual(self.space.previous_position, (0, 0, 0))
 
         self.assertFalse(self.space.move_to((-1, 0, 0)))
         self.assertEqual(self.space.current_position, (1, 0, 0))
+        self.assertEqual(self.space.previous_position, (0, 0, 0))
 
         self.assertFalse(self.space.move_to((0, 0, 1)))
         self.assertEqual(self.space.current_position, (1, 0, 0))
+        self.assertEqual(self.space.previous_position, (0, 0, 0))
+
+    def test_update_goal_position(self):
+        self.assertTrue(self.space.update_goal_position((1, 0, 0)))
+        self.assertEqual(self.space.goal_position, (1, 0, 0))
+
+        self.assertFalse(self.space.update_goal_position((-1, 0, 0)))
+        self.assertEqual(self.space.goal_position, (1, 0, 0))
+
+        self.assertFalse(self.space.update_goal_position((0, 0, 1)))
+        self.assertEqual(self.space.goal_position, (1, 0, 0))
 
 
 class TestDroneSpace(unittest.TestCase):
@@ -80,12 +99,13 @@ class TestDroneSpace(unittest.TestCase):
         self.grid_size = 1.0
         self.operational_map = OPERATIONAL_MAP1
         self.start_position = (0, 0, 0)
+        self.goal_position = (0, 0, 0)
         self.viewing_angle = 90.0
         self.viewing_range = 15.0
         self.observation_space_size = 10
         self.agent_id = 0
-        self.env = DroneSpace(self.grid_size, self.operational_map, self.start_position, self.viewing_angle,
-                              self.viewing_range, self.observation_space_size, self.agent_id)
+        self.env = DroneSpace(self.grid_size, self.operational_map, self.start_position, self.goal_position,
+                              self.viewing_angle, self.viewing_range, self.observation_space_size, self.agent_id)
 
     def test_initialization(self):
         self.assertIsInstance(self.env, Space)
@@ -131,12 +151,13 @@ class TestDronesSpace(unittest.TestCase):
         self.grid_size = 1.0
         self.operational_map = OPERATIONAL_MAP1
         self.start_positions = DRONE_STATES
+        self.goal_positions = ACTOR_POSITIONS
         self.viewing_angle = 90.0
         self.viewing_range = 15.0
         self.observation_space_size = 10
         self.num_agents = 3
         self.drones_space = DronesSpace(
-            self.grid_size, self.operational_map, self.start_positions,
+            self.grid_size, self.operational_map, self.start_positions, self.goal_positions,
             self.viewing_angle, self.viewing_range, self.observation_space_size, self.num_agents)
 
     def test_initialization(self):
