@@ -1,6 +1,6 @@
 from gym.spaces.space import Space
 from math import floor
-from gym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple
+from gym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List
 import numpy as np
 
 
@@ -191,15 +191,15 @@ class DroneSpace(Space):
 class DronesSpace:
     def __init__(
             self,
-            grid_size=1.0,
-            operational_map=None,
-            start_position=(0, 0, 0),
-            viewing_angle=90.0,
-            viewing_range=15.0,
-            observation_square_size=10,
-            num_agents=1
+            grid_size: float = 1.0,
+            operational_map: np.ndarray = np.ones((3, 3)),
+            start_positions: List[ThreeIntTuple] = [(0, 0, 0)],
+            viewing_angle: float = 90.0,
+            viewing_range: float = 15.0,
+            observation_space_size: int = 10,
+            num_agents: int = 1
     ):
         self.drone = []
         for agentID in range(num_agents):
-            self.drone.append(DroneSpace(grid_size, operational_map, start_position, viewing_angle, viewing_range,
-                                         observation_square_size, agentID))
+            self.drone.append(DroneSpace(grid_size, operational_map, start_positions[agentID], viewing_angle,
+                                         viewing_range, observation_space_size, agentID))

@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 from gym.spaces.space import Space
-from gym.spaces.drone_space import DroneSpace
+from gym.spaces.drone_space import DroneSpace, DronesSpace
 from gym.utils.types import List
 from tests.utils.world_scenarios import *
 
@@ -104,8 +104,8 @@ class TestDroneSpace(unittest.TestCase):
 
     @unittest.skip("test_current_cam_coverage_locations")
     def test_current_cam_coverage_locations(self):
-        self.seed = seeding.create_seed(0)
-        self.np_random = np.random.RandomState(self.seed)
+        # self.seed = seeding.create_seed(0)
+        # self.np_random = np.random.RandomState(self.seed)
         coverage = self.env.current_cam_coverage_locations
         self.assertIsInstance(coverage, List)
 
@@ -121,6 +121,46 @@ class TestDroneSpace(unittest.TestCase):
                              (4, self.observation_space_size, self.observation_space_size))
             self.assertTrue(np.alltrue(actual_observation_channels == OBS_MAP1_DRONE1_LOCS[i]))
 
+
+class TestDronesSpace(unittest.TestCase):
+
+    def setUp(self):
+        self.grid_size = 1.0
+        self.operational_map = OPERATIONAL_MAP1
+        self.start_positions = DRONE_STATES
+        self.viewing_angle = 90.0
+        self.viewing_range = 15.0
+        self.observation_space_size = 10
+        self.num_agents = 3
+        self.drones_space = DronesSpace(
+            self.grid_size, self.operational_map, self.start_positions,
+            self.viewing_angle, self.viewing_range, self.observation_space_size, self.num_agents)
+
+    def test_initialization(self):
+        # test if initialization is successful
+        self.assertEqual(len(self.drones_space.drone), self.num_agents)
+        for i in range(self.num_agents):
+            drone = self.drones_space.drone[i]
+            self.assertEqual(drone.grid_size, self.grid_size)
+            self.assertTrue(np.alltrue(drone.operational_map == self.operational_map))
+            self.assertEqual(drone.start_position, self.start_positions[i])
+            self.assertEqual(drone.current_position, self.start_positions[i])
+            self.assertEqual(drone.viewing_angle, self.viewing_angle)
+            self.assertEqual(drone.viewing_range, self.viewing_range)
+            self.assertEqual(drone.observation_space_size, self.observation_space_size)
+            self.assertEqual(drone.agent_id, i)
+
+    def test_movement(self):
+        # test if drone moves correctly
+        agent_id = 0
+        new_position_with_obstacle = (1, 0, 0)
+        drone = self.drones_space.drone[agent_id]
+        self.assertFalse(drone.move_to(new_position_with_obstacle))
+
+        new_position_without_obstacle = (7, 4, 0)
+        self.assertTrue(drone.move_to(new_position_without_obstacle))
+        self.assertEqual(drone.current_position, new_position_without_obstacle)
+        self.assertEqual(drone.start_position, DRONE_STATES[agent_id])
 
 
 if __name__ == '__main__':
