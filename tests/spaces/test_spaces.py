@@ -9,13 +9,12 @@ from tests.utils.world_scenarios import *
 MAP_HEIGHT = 3
 MAP_WIDTH = 3
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class TestSpace(unittest.TestCase):
 
     def setUp(self):
-        print("Creating Space Obj")
         self.space = Space(grid_size=1.0,
                            operational_map=np.ones((MAP_HEIGHT, MAP_WIDTH)),
                            start_position=(0, 0, 0),
