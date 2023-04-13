@@ -12,14 +12,14 @@ class Color(Enum):
     YELLOW = 4
 
 
-def getObstacleMapFromPointcloud(pointcloud_filename, grid_size):
+def get_obstacle_map_from_pcd(pcd_filename, grid_size):
     """
-    :param pointcloud_filename: relative filename of the pointcloud
+    :param pcd_filename: relative filename of the pointcloud
     :param grid_size: size of grid in meters
     :return: obstacle map with given grid size
     """
     # Load the point cloud from file
-    points = np.loadtxt(pointcloud_filename)
+    points = np.loadtxt(pcd_filename)
 
     # Calculate the maximum and minimum x and y values
     x_max = np.max(points[:, 0])
@@ -44,7 +44,7 @@ def getObstacleMapFromPointcloud(pointcloud_filename, grid_size):
     return obstacle_map
 
 
-def displayMap(grid_map):
+def display_map(grid_map):
     """
     :param grid_map:
     """
@@ -53,7 +53,7 @@ def displayMap(grid_map):
     plt.show()
 
 
-def savePNGFromNumpy(numpy_array, output_img_filename):
+def save_png_from_numpy(numpy_array, output_img_filename):
     # convert the numpy array to PIL Image
     img = Image.fromarray((numpy_array * 255).astype(np.uint8), mode='L')
 
@@ -61,6 +61,6 @@ def savePNGFromNumpy(numpy_array, output_img_filename):
     img.save(output_img_filename)
 
 
-def saveNumpyAsNPY(numpy_array, output_filename):
+def save_numpy_as_npy(numpy_array, output_filename):
     # save the numpy array in the output_filename
     np.save(output_filename, numpy_array)
