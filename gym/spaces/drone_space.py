@@ -1,6 +1,6 @@
 from gym.spaces.space import Space
 from math import floor
-from gym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List
+from gym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
 import numpy as np
 
 
@@ -32,7 +32,10 @@ class DroneSpace(Space):
         super().__init__(
             grid_size=grid_size,
             operational_map=operational_map,
-            start_position=start_position)
+            start_position=start_position,
+            agent_id=agent_id,
+            agent_type=AgentType.DRONE
+        )
 
         self.viewing_angle = viewing_angle  # angle of the drone's camera view
         # TODO: Use the optimal height and angle for filming actors paper to come up with the viewing range.
@@ -40,8 +43,6 @@ class DroneSpace(Space):
         self.viewing_range = viewing_range  # range of the drone's camera view
 
         self.observation_space_size = observation_space_size
-
-        self.agent_id = agent_id
 
     @property
     def current_cam_coverage_locations(self) -> TwoIntTupleList:

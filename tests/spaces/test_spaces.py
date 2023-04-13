@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from gym.spaces.space import Space
 from gym.spaces.drone_space import DroneSpace, DronesSpace
-from gym.utils.types import List
+from gym.utils.types import List, AgentType
 from tests.utils.world_scenarios import *
 
 MAP_HEIGHT = 3
@@ -15,9 +15,11 @@ logging.basicConfig(level=logging.DEBUG)
 class TestSpace(unittest.TestCase):
 
     def setUp(self):
+        print("Creating Space Obj")
         self.space = Space(grid_size=1.0,
                            operational_map=np.ones((MAP_HEIGHT, MAP_WIDTH)),
-                           start_position=(0, 0, 0))
+                           start_position=(0, 0, 0),
+                           agent_type=AgentType.DRONE)
 
     def test_init(self):
         self.assertEqual(self.space.grid_size, 1.0)
@@ -28,6 +30,8 @@ class TestSpace(unittest.TestCase):
         self.assertEqual(self.space.current_position, (0, 0, 0))
         self.assertEqual(self.space.total_translation_dirs, 9)
         self.assertEqual(self.space.total_rotation_dirs, 8)
+        self.assertEqual(self.space.agent_id, 0)
+        self.assertEqual(self.space.agent_type, AgentType.DRONE)
 
     def test_get_new_translated_position_by_seq(self):
         new_pos = self.space.get_new_translated_position_by_seq(0)

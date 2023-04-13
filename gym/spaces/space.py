@@ -1,5 +1,5 @@
 import numpy as np
-from gym.utils.types import ThreeIntTuple
+from gym.utils.types import ThreeIntTuple, AgentType
 import logging
 
 
@@ -20,6 +20,8 @@ class Space:
             grid_size: float = 1.0,
             operational_map: np.ndarray = np.ones((3, 3)),
             start_position: ThreeIntTuple = (0, 0, 0),
+            agent_type: AgentType = AgentType.DRONE,
+            agent_id: int = 0,
     ):
         """
         Initializes the attributes of the Space class.
@@ -29,6 +31,8 @@ class Space:
         * operational_map: array, the size of the 2D grid environment.
         * start_position: tuple (x,y, orientation), the starting position of the drone .
         """
+        self.agent_type = agent_type
+        self.agent_id = agent_id
         self.grid_size = grid_size
         self.operational_map = operational_map
         self.map_height = np.shape(operational_map)[0]  # Obstacle map height
@@ -96,19 +100,22 @@ class Space:
         * new_position: tuple, the new position to be checked.
 
         Returns:
-        * True if the new position is a inside the operational map dimension and is on the operational location
+        * True if the new position is an inside the operational map dimension and is on the operational location
 
         """
         is_valid = True
 
         if not 0 <= new_position[0] < self.map_height or not 0 <= new_position[1] < self.map_width:
-            self.logger.debug("New position({}), outside the map.".format(new_position))
+            self.logger.debug(f"(Agent: {self.agent_type}, ID: {self.agent_id}) New position({new_position}), outside "
+                              f"the map.")
             is_valid = False
         elif new_position[2] % 45 != 0:
-            self.logger.debug("New position({}) orientation is not valid.".format(new_position))
+            self.logger.debug(f"(Agent: {self.agent_type}, ID: {self.agent_id}) New position({new_position}) "
+                              f"orientation is not valid.")
             is_valid = False
         elif not self.operational_map[new_position[0]][new_position[1]]:
-            self.logger.debug("New position({}) has obstacle on it.".format(new_position))
+            self.logger.debug(f"(Agent: {self.agent_type}, ID: {self.agent_id}) New position({new_position}) has "
+                              f"obstacle on it.")
             is_valid = False
 
         return is_valid
@@ -127,9 +134,9 @@ class Space:
         # Update the current position with the new position
         success = False
         if self.is_valid_action(new_position):
-            self.logger.info("Moved to new position: {}".format(new_position))
             self.current_position = new_position
             success = True
+            self.logger.info(f"(Agent: {self.agent_type}, ID: {self.agent_id})  moved to new position: {self.current_position}")
         else:
             self.logger.warning("Cannot move to new position({})".format(new_position))
         return success
