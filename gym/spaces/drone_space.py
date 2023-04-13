@@ -43,7 +43,6 @@ class DroneSpace(Space):
 
         self.agent_id = agent_id
 
-
     @property
     def current_cam_coverage_locations(self) -> TwoIntTupleList:
         # Return the camera coverage locations based on the camera location, angle and camera range
@@ -109,8 +108,9 @@ class DroneSpace(Space):
             self,
             current_agents_position_arr: TwoIntTupleList,
             current_actor_position_arr: TwoIntTupleList
-    ) -> np.ndarray:
+    ) -> np.ndarray | None:
         current_actor_x, current_actor_y, current_actor_orientation = self.current_position
+        self.logger.debug(f"Current actor position: ({current_actor_x}, {current_actor_y})")
 
         # Get the observation channel origin
         relative_observation_window_origin_x = floor(current_actor_x - (self.observation_space_size / 2.0))
@@ -133,38 +133,50 @@ class DroneSpace(Space):
         # update this
         agent_goal_map = np.zeros((self.observation_space_size, self.observation_space_size))
 
-        for y in range(relative_observation_window_origin_y, relative_observation_window_top_y + 1):
-            for x in range(relative_observation_window_origin_x, relative_observation_window_top_x + 1):
+        try:
 
-                # Check if the window is inside the operational map
-                if x or y < 0:
-                    # Continue if this location is outside the main map
-                    continue
-                else:
+            for y in range(relative_observation_window_origin_y, relative_observation_window_top_y):
+                for x in range(relative_observation_window_origin_x, relative_observation_window_top_x):
+                    self.logger.debug(f"Traversing over ({x}, {y}) to update observation channel.")
+                    # Check if the window is inside the operational map
+                    if x < 0 or y < 0:
+                        # Continue if this location is outside the main map
+                        self.logger.debug(f"Location out of operation map, hence using default values.")
+                        continue
+                    else:
 
-                    current_map_x = x + relative_observation_window_origin_x
-                    current_map_y = y + relative_observation_window_origin_y
+                        current_map_x = x
+                        current_map_y = y
+                        self.logger.debug(f"Current map coordinates: ({current_map_x}, {current_map_y})")
 
-                    current_window_x = x - relative_observation_window_origin_x
-                    current_window_y = y - relative_observation_window_origin_y
+                        current_window_x = x - relative_observation_window_origin_x
+                        current_window_y = y - relative_observation_window_origin_y
+                        self.logger.debug(f"Current Window coordinates: ({current_window_x}, {current_window_y})")
 
-                    if self.operational_map[current_map_x, current_map_y]:
-                        obstacle_map[current_window_x, current_window_y] = 0
+                        if self.operational_map[current_map_x, current_map_y]:
+                            obstacle_map[current_window_x, current_window_y] = 0
+                            self.logger.debug(f"obstacle_map[{current_window_x}, {current_window_y}] = 0")
 
-                    if (current_map_x, current_map_y) in current_agents_position_arr:
-                        agents_position_map[current_window_x, current_window_y] = 1
+                        if (current_map_x, current_map_y) in current_agents_position_arr:
+                            agents_position_map[current_window_x, current_window_y] = 1
+                            self.logger.debug(f"agents_position_map[{current_window_x}, {current_window_y}] = 1")
 
-                    # QUES: Should we keep track of which drone is going to which actor or just come up with the
-                    # actor locations as the drone goal locations
+                        # QUES: Should we keep track of which drone is going to which actor or just come up with the
+                        # actor locations as the drone goal locations
 
-                    if (current_map_x, current_map_y) in current_actor_position_arr:
-                        neighbours_goal_map[current_window_x, current_window_y] = 1
+                        if (current_map_x, current_map_y) in current_actor_position_arr:
+                            neighbours_goal_map[current_window_x, current_window_y] = 1
+                            self.logger.debug(f"neighbours_goal_map[{current_window_x}, {current_window_y}] = 1")
 
-                    # Right now taking all the actor location as .self drone goal location
-                    if (current_map_x, current_map_y) in current_actor_position_arr:
-                        agent_goal_map[current_window_x, current_window_y] = 1
+                        # Right now taking all the actor location as .self drone goal location
+                        if (current_map_x, current_map_y) in current_actor_position_arr:
+                            agent_goal_map[current_window_x, current_window_y] = 1
+                            self.logger.debug(f"agent_goal_map[{current_window_x}, {current_window_y}] = 1")
 
-        observation_channel = np.array([obstacle_map, agents_position_map, neighbours_goal_map, agent_goal_map])
+            observation_channel = np.array([obstacle_map, agents_position_map, neighbours_goal_map, agent_goal_map])
+        except Exception as err:
+            self.logger.error(str(err) + "Something went grond at getting observation channel.")
+            observation_channel = None
 
         return observation_channel
 
@@ -184,5 +196,3 @@ class DronesSpace:
         for agentID in range(num_agents):
             self.drone.append(DroneSpace(grid_size, operational_map, start_position, viewing_angle, viewing_range,
                                          observation_square_size, agentID))
-
-

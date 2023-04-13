@@ -32,9 +32,9 @@ DRONE_POSITIONS = [(DRONE1_LOCATION1[0], DRONE1_LOCATION1[1]),
                    (DRONE2_LOCATION1[0], DRONE2_LOCATION1[1]),
                    (DRONE3_LOCATION1[0], DRONE3_LOCATION1[1])]
 
-ACTOR1_LOCATION1 = (5, 7, 0)
-ACTOR2_LOCATION1 = (3, 7, 0)
-ACTOR3_LOCATION1 = (9, 7, 0)
+ACTOR1_LOCATION1 = (7, 5, 0)
+ACTOR2_LOCATION1 = (7, 3, 0)
+ACTOR3_LOCATION1 = (7, 9, 0)
 
 ACTOR_POSITIONS = [(ACTOR1_LOCATION1[0], ACTOR1_LOCATION1[1]),
                    (ACTOR2_LOCATION1[0], ACTOR2_LOCATION1[1]),
@@ -42,7 +42,7 @@ ACTOR_POSITIONS = [(ACTOR1_LOCATION1[0], ACTOR1_LOCATION1[1]),
 
 # noinspection DuplicatedCode
 OBS_MAP1_DRONE1_LOC1 = np.array([
-    [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  # Obstacle Map
+    [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],    # Obstacle Map
      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
      [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
      [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
@@ -53,38 +53,38 @@ OBS_MAP1_DRONE1_LOC1 = np.array([
      [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
      [1, 1, 0, 0, 0, 1, 0, 0, 0, 0]],
 
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Agents (DRONES + ACTORS)Position Map
+    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # Agents (DRONES + ACTORS)Position Map
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
 
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Actors Position Projected Map (Drone goals positions)
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # This is without projection
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Contains all the actor location even the one that current drone is following
+    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # Actors Position Projected Map (Drone goals positions)
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # This is without projection
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # Contains all the actor location even the one that current drone is following
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 1, 0, 1, 0, 0]],
 
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Actors Position Projected Map (Drone goals positions)
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # This is without projection
+    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # Actors Position Projected Map (Drone goals positions)
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # This is without projection
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 1, 0, 1, 0, 0]]
 ])
 
 
