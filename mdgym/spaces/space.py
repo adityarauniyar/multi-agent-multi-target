@@ -1,5 +1,5 @@
 import numpy as np
-from gym.utils.types import ThreeIntTuple, AgentType
+from mdgym.utils.types import ThreeIntTuple, AgentType
 import logging
 
 
@@ -7,7 +7,7 @@ class Space:
     """
     SpaceClass contains Observation and Action spaces.
 
-    In gym, spaces are crucial to defining the format of legal actions and observations. They have several functions:
+    In mdgym, spaces are crucial to defining the format of legal actions and observations. They have several functions:
     * They allow us to work with highly structured data and transform it into flat arrays that can be used
         in learning code.
     * They provide a method for sampling random elements.

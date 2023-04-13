@@ -1,15 +1,15 @@
-from gym.utils.map_preprocessing import getObstacleMapFromPointcloud, savePNGFromNumpy, displayMap, saveNumpyAsNPY
+from mdgym.utils.map_preprocessing import get_obstacle_map_from_pcd, save_png_from_numpy, display_map, save_numpy_as_npy
 from ENV import *
-from gym.envs.objects import semantic_object as sem
+from mdgym.envs.objects import semantic_object as sem
 
 
 def generateMapAndDisplay():
-    obstacle_map = getObstacleMapFromPointcloud(POINTCLOUD_FILENAME, GRID_SIZE)
+    obstacle_map = get_obstacle_map_from_pcd(POINTCLOUD_FILENAME, GRID_SIZE)
 
-    saveNumpyAsNPY(obstacle_map, OBSTACLE_MAP_FILENAME)
+    save_numpy_as_npy(obstacle_map, OBSTACLE_MAP_FILENAME)
 
-    displayMap(obstacle_map)
-    savePNGFromNumpy(obstacle_map, OBSTACLE_MAP_IMG_FILENAME)
+    display_map(obstacle_map)
+    save_png_from_numpy(obstacle_map, OBSTACLE_MAP_IMG_FILENAME)
 
 
 if __name__ == "__main__":

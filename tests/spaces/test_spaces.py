@@ -1,9 +1,9 @@
 import unittest
 import logging
 import numpy as np
-from gym.spaces.space import Space
-from gym.spaces.drone_space import DroneSpace, DronesSpace
-from gym.utils.types import List, AgentType
+from mdgym.spaces.space import Space
+from mdgym.spaces.drone_space import DroneSpace, DronesSpace
+from mdgym.utils.types import List, AgentType
 from tests.utils.world_scenarios import *
 
 MAP_HEIGHT = 3

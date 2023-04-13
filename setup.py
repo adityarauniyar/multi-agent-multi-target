@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 
 
 print("Checking version...")
-with open("gym/version.py") as file:
+with open("mdgym/version.py") as file:
     full_version = file.read()
     matched_version = re.match(r'VERSION = "\d\.\d+\.\d+"', full_version).group()
     assert (matched_version == full_version), "Unexpected version: {}".format(full_version)
@@ -36,7 +36,7 @@ setup(
     author="Aditya Rauniyar",
     author_email="rauniyar@cmu.edu",
     classifiers=[
-        # Python 3.6 is minimally supported (only with basic gym environments and API)
+        # Python 3.6 is minimally supported (only with basic mdgym environments and API)
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
@@ -55,10 +55,10 @@ setup(
     license="MIT",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    name="multi-drone-gym",
-    packages=[package for package in find_packages() if package.startswith("gym")],
+    name="multi-drone-mdgym",
+    packages=[package for package in find_packages() if package.startswith("mdgym")],
     package_data={
-        "gym": [
+        "mdgym": [
             "envs/hawkins2DMap/pointclouds/*.txt",
         ]
     },

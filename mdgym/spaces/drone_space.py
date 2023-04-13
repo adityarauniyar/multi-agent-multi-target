@@ -1,6 +1,6 @@
-from gym.spaces.space import Space
+from mdgym.spaces.space import Space
 from math import floor
-from gym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
+from mdgym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
 import numpy as np
 
 

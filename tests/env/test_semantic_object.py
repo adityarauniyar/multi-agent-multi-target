@@ -1,6 +1,6 @@
 import unittest
 from PIL import Image
-from gym.envs.objects.semantic_object import SemanticObject, ObjectType
+from mdgym.envs.objects.semantic_object import SemanticObject, ObjectType
 import numpy as np
 
 
