@@ -50,7 +50,7 @@ class WorldState(object):
 
     @property
     def agents_curr_pos(self) -> List(ThreeIntTuple):
-        agents_curr_pos = [(-1, -1) for _ in range(self.num_agents)]
+        agents_curr_pos = [(-1, -1, -1) for _ in range(self.num_agents)]
         for agent_id in range(self.num_agents):
             agents_curr_pos[agent_id] = self.state.drones[agent_id].current_position
 
@@ -64,7 +64,7 @@ class WorldState(object):
         return agents_prev_pos
     @property
     def agents_goal_pos(self) -> List(ThreeIntTuple):
-        agents_goal_pos = [(-1, -1) for _ in range(self.num_agents)]
+        agents_goal_pos = [(-1, -1, -1) for _ in range(self.num_agents)]
         for agent_id in range(self.num_agents):
             agents_goal_pos[agent_id] = self.state.drones[agent_id].goal_position
 
