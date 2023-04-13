@@ -115,10 +115,16 @@ class DroneSpace(Space):
         # Get the observation channel origin
         relative_observation_window_origin_x = floor(current_actor_x - (self.observation_space_size / 2.0))
         relative_observation_window_origin_y = floor(current_actor_y - (self.observation_space_size / 2.0))
+        self.logger.debug(f"Relative Observation window origin: ({relative_observation_window_origin_x},"
+                          f" {relative_observation_window_origin_y})")
 
         # Get the observation channel window top coordinates
-        relative_observation_window_top_x = int(relative_observation_window_origin_x + self.observation_space_size)
-        relative_observation_window_top_y = int(relative_observation_window_origin_y + self.observation_space_size)
+        relative_observation_window_top_x = min(self.observation_space_size,
+                                                int(relative_observation_window_origin_x + self.observation_space_size))
+        relative_observation_window_top_y = min(self.observation_space_size,
+                                                (relative_observation_window_origin_y + self.observation_space_size))
+        self.logger.debug(f"Relative Observation Top Coordinate: ({relative_observation_window_top_x},"
+                          f" {relative_observation_window_top_y})")
 
         # Stores location as True for those that has obstacles
         obstacle_map = np.ones((self.observation_space_size, self.observation_space_size))
@@ -132,6 +138,7 @@ class DroneSpace(Space):
         # Stores all the locations as False by default that doesn't have agents goals, no projection is used to
         # update this
         agent_goal_map = np.zeros((self.observation_space_size, self.observation_space_size))
+        self.logger.debug(f"Current actor position: ({current_actor_x}, {current_actor_y})")
 
         try:
 

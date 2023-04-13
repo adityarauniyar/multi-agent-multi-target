@@ -110,14 +110,17 @@ class TestDroneSpace(unittest.TestCase):
         self.assertIsInstance(coverage, List)
 
     def test_get_current_observation_channels(self):
-        self.assertTrue(self.env.move_to(DRONE1_LOCATION1))
-        actual_observation_channels = self.env.get_current_observation_channels(DRONE_POSITIONS,
-                                                                                ACTOR_POSITIONS)
-        print("Actual Observation Channel: \n{}".format(actual_observation_channels))
-        self.assertIsInstance(actual_observation_channels, np.ndarray)
-        self.assertEqual(actual_observation_channels.shape,
-                         (4, self.observation_space_size, self.observation_space_size))
-        self.assertTrue(np.alltrue(actual_observation_channels == OBS_MAP1_DRONE1_LOC1))
+        for i in range(len(DRONE_STATES)):
+            print("Testing for drone position at {}".format(DRONE_STATES[i]))
+            self.assertTrue(self.env.move_to(DRONE_STATES[i]))
+            actual_observation_channels = self.env.get_current_observation_channels(DRONE_POSITIONS,
+                                                                                    ACTOR_POSITIONS)
+            print("Actual Observation Channel: \n{}".format(actual_observation_channels))
+            self.assertIsInstance(actual_observation_channels, np.ndarray)
+            self.assertEqual(actual_observation_channels.shape,
+                             (4, self.observation_space_size, self.observation_space_size))
+            self.assertTrue(np.alltrue(actual_observation_channels == OBS_MAP1_DRONE1_LOCS[i]))
+
 
 
 if __name__ == '__main__':
