@@ -55,13 +55,13 @@ class SemanticObject:
         # the object of interest, and False otherwise.
         self.presence_grid = self.__get_object_presence_table()
 
-    def __read_image(self):
+    def __read_image(self) -> Image:
         """
         Private method that reads the image file and returns an Image object.
         """
         return Image.open(self.image_filename)
 
-    def __get_rgb_tuple_table_from_image(self):
+    def __get_rgb_tuple_table_from_image(self) -> np.ndarray:
         """
         Private method that creates a table of size image height x width to store the RGB tuples
         of each pixel in the image.
@@ -79,7 +79,7 @@ class SemanticObject:
 
         return rgb_table
 
-    def __get_object_presence_table(self):
+    def __get_object_presence_table(self) -> np.ndarray:
         """
         Private method that creates a hash table to store whether each pixel contains the
         object of interest.

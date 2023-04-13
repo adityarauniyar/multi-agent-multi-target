@@ -33,11 +33,11 @@ class TestSemanticObject(unittest.TestCase):
         self.assertEqual(self.building.rgb_image_tuple_table[0][0][0], 127)
 
     def test_object_presence_by_location(self):
-        self.assertIsInstance(self.building.object_present_by_location_tuple, dict)
-        self.assertEqual(len(self.building.object_present_by_location_tuple), 266 * 324)
-        self.assertEqual(self.building.object_present_by_location_tuple[(0, 0)], True)
-        self.assertEqual(self.building.object_present_by_location_tuple[(100, 100)], True)
-        self.assertEqual(self.building.object_present_by_location_tuple[(200, 200)], False)
+        self.assertIsInstance(self.building.presence_grid, np.ndarray)
+        self.assertEqual(len(self.building.presence_grid), len(self.building.image_numpy))
+        self.assertEqual(self.building.presence_grid[(0, 0)], True)
+        self.assertEqual(self.building.presence_grid[(100, 100)], True)
+        self.assertEqual(self.building.presence_grid[(200, 200)], False)
 
 
 if __name__ == '__main__':
