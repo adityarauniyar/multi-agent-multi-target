@@ -1,5 +1,6 @@
 import numpy as np
 from gym.utils.types import ThreeIntTuple
+import logging
 
 
 class Space:
@@ -50,6 +51,8 @@ class Space:
         self.rotation_dirs = [45, 90, 135, 180,  # Rotations in left, counter-clockwise as positive
                               -45, -90, -135, -180]  # Rotations in right, clockwise as negative
         self.total_rotation_dirs = len(self.rotation_dirs)
+
+        self.logger = logging.getLogger(__name__)
 
     def get_new_translated_position_by_seq(self, translation_sequence: int) -> ThreeIntTuple:
         """
@@ -121,6 +124,7 @@ class Space:
         # Update the current position with the new position
         success = False
         if self.is_valid_action(new_position):
+            self.logger.info(str(self) + "Moved to new position: {}".format(new_position))
             self.current_position = new_position
             success = True
 
