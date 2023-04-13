@@ -16,6 +16,7 @@ class DroneSpace(Space):
             grid_size: float = 1.0,
             operational_map: np.ndarray = np.ones((3, 3)),
             start_position: ThreeIntTuple = (0, 0, 0),
+            goal_position: ThreeIntTuple = (0, 0, 0),
             viewing_angle: float = 90.0,
             viewing_range: float = 15.0,
             observation_space_size: int = 10,
@@ -33,6 +34,7 @@ class DroneSpace(Space):
             grid_size=grid_size,
             operational_map=operational_map,
             start_position=start_position,
+            goal_position=goal_position,
             agent_id=agent_id,
             agent_type=AgentType.DRONE
         )
@@ -194,13 +196,25 @@ class DronesSpace:
             self,
             grid_size: float = 1.0,
             operational_map: np.ndarray = np.ones((3, 3)),
-            start_positions: List[ThreeIntTuple] = [(0, 0, 0)],
+            start_positions: List[ThreeIntTuple] | None = None,
+            goal_positions: List[ThreeIntTuple] | None = None,
             viewing_angle: float = 90.0,
             viewing_range: float = 15.0,
             observation_space_size: int = 10,
             num_agents: int = 1
     ):
-        self.drone = []
+        if start_positions is None:
+            start_positions = [(0, 0, 0)]
+        if goal_positions is None:
+            goal_positions = [(0, 0, 0)]
+        self.drones = []
         for agentID in range(num_agents):
-            self.drone.append(DroneSpace(grid_size, operational_map, start_positions[agentID], viewing_angle,
-                                         viewing_range, observation_space_size, agentID))
+            self.drones.append(DroneSpace(
+                grid_size=grid_size,
+                operational_map=operational_map,
+                start_position=start_positions[agentID],
+                goal_position=goal_positions[agentID],
+                viewing_angle=viewing_angle,
+                viewing_range=viewing_range,
+                observation_space_size=observation_space_size,
+                agent_id=agentID))
