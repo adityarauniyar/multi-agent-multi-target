@@ -102,10 +102,13 @@ class Space:
         is_valid = True
 
         if not 0 <= new_position[0] < self.map_height or not 0 <= new_position[1] < self.map_width:
+            self.logger.debug("New position({}), outside the map.")
             is_valid = False
         elif new_position[2] % 45 != 0:
+            self.logger.debug("New position({}) orientation is not valid.")
             is_valid = False
         elif not self.operational_map[new_position[0]][new_position[1]]:
+            self.logger.debug("New position({}) has obstacle on it.")
             is_valid = False
 
         return is_valid
@@ -124,8 +127,9 @@ class Space:
         # Update the current position with the new position
         success = False
         if self.is_valid_action(new_position):
-            self.logger.info(str(self) + "Moved to new position: {}".format(new_position))
+            self.logger.info("Moved to new position: {}".format(new_position))
             self.current_position = new_position
             success = True
-
+        else:
+            self.logger.warning("Cannot move to new position({})".format(new_position))
         return success
