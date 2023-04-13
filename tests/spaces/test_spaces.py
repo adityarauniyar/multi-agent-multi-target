@@ -166,9 +166,9 @@ class TestDronesSpace(unittest.TestCase):
 
     def test_initialization(self):
         # test if initialization is successful
-        self.assertEqual(len(self.drones_space.drone), self.num_agents)
+        self.assertEqual(len(self.drones_space.drones), self.num_agents)
         for i in range(self.num_agents):
-            drone = self.drones_space.drone[i]
+            drone = self.drones_space.drones[i]
             self.assertEqual(drone.grid_size, self.grid_size)
             self.assertTrue(np.alltrue(drone.operational_map == self.operational_map))
             self.assertEqual(drone.start_position, self.start_positions[i])
@@ -182,7 +182,7 @@ class TestDronesSpace(unittest.TestCase):
         # test if drone moves correctly
         agent_id = 0
         new_position_with_obstacle = (1, 0, 0)
-        drone = self.drones_space.drone[agent_id]
+        drone = self.drones_space.drones[agent_id]
         self.assertFalse(drone.move_to(new_position_with_obstacle))
 
         new_position_without_obstacle = (7, 4, 0)
