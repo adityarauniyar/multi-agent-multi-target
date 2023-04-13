@@ -141,7 +141,7 @@ class DroneSpace(Space):
         self.logger.debug(f"Current actor position: ({current_actor_x}, {current_actor_y})")
 
         try:
-
+            # TODO: Vectorize this double for-loop
             for y in range(relative_observation_window_origin_y, relative_observation_window_top_y):
                 for x in range(relative_observation_window_origin_x, relative_observation_window_top_x):
                     self.logger.debug(f"Traversing over ({x}, {y}) to update observation channel.")
