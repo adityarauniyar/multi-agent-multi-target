@@ -82,6 +82,10 @@ class TestSpace(unittest.TestCase):
         self.assertEqual(self.space.current_position, (1, 0, 0))
         self.assertEqual(self.space.previous_position, (0, 0, 0))
 
+        self.assertTrue(self.space.move_to((1, 0, 0)))
+        self.assertEqual(self.space.current_position, (1, 0, 0))
+        self.assertEqual(self.space.previous_position, (1, 0, 0))
+
     def test_update_goal_position(self):
         self.assertTrue(self.space.update_goal_position((1, 0, 0)))
         self.assertEqual(self.space.goal_position, (1, 0, 0))
