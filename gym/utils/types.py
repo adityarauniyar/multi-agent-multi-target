@@ -4,8 +4,8 @@ from typing import \
 from enum import Enum
 
 ThreeIntTuple = Tuple[int, int, int]
-
-TwoIntTupleList = List[Tuple[int, int]]
+TwoIntTuple = Tuple[int, int]
+TwoIntTupleList = List[TwoIntTuple]
 
 TwoDArray = List[List[float]]
 
