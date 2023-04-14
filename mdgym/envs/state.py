@@ -1,6 +1,6 @@
 import numpy as np
 
-from mdgym.spaces.space import Space
+from mdgym.spaces.agentstate import AgentState
 from mdgym.spaces.drone_space import DronesSpace
 from mdgym.utils.types import TwoIntTupleList, TwoIntTuple, ThreeIntTuple, List
 

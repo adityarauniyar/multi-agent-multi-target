@@ -1,8 +1,8 @@
 import unittest
 import logging
 import numpy as np
-from mdgym.spaces.space import Space
-from mdgym.spaces.drone_space import DroneSpace, DronesSpace
+from mdgym.spaces.agentstate import AgentState
+from mdgym.spaces.drone_space import DroneAgentState, DronesSpace
 from mdgym.utils.types import List, AgentType
 from tests.utils.world_scenarios import *
 
@@ -15,10 +15,10 @@ logging.basicConfig(level=logging.INFO)
 class TestSpace(unittest.TestCase):
 
     def setUp(self):
-        self.space = Space(grid_size=1.0,
-                           operational_map=np.ones((MAP_HEIGHT, MAP_WIDTH)),
-                           start_position=(0, 0, 0),
-                           agent_type=AgentType.DRONE)
+        self.space = AgentState(grid_size=1.0,
+                                operational_map=np.ones((MAP_HEIGHT, MAP_WIDTH)),
+                                start_position=(0, 0, 0),
+                                agent_type=AgentType.DRONE)
 
     def test_init(self):
         self.assertEqual(self.space.grid_size, 1.0)
@@ -108,11 +108,11 @@ class TestDroneSpace(unittest.TestCase):
         self.viewing_range = 15.0
         self.observation_space_size = 10
         self.agent_id = 0
-        self.env = DroneSpace(self.grid_size, self.operational_map, self.start_position, self.goal_position,
-                              self.viewing_angle, self.viewing_range, self.observation_space_size, self.agent_id)
+        self.env = DroneAgentState(self.grid_size, self.operational_map, self.start_position, self.goal_position,
+                                   self.viewing_angle, self.viewing_range, self.observation_space_size, self.agent_id)
 
     def test_initialization(self):
-        self.assertIsInstance(self.env, Space)
+        self.assertIsInstance(self.env, AgentState)
         self.assertEqual(self.env.grid_size, self.grid_size)
         np.testing.assert_array_equal(self.env.operational_map, self.operational_map)
         self.assertEqual(self.env.start_position, self.start_position)

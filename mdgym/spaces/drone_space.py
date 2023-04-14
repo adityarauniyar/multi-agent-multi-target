@@ -1,10 +1,10 @@
-from mdgym.spaces.space import Space
+from mdgym.spaces.agentstate import AgentState
 from math import floor
 from mdgym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
 import numpy as np
 
 
-class DroneSpace(Space):
+class DroneAgentState(AgentState):
     """
     Drone Space Class to capture the behaviour of the drones moving given 2D grid.
 
@@ -209,7 +209,7 @@ class DronesSpace:
             goal_positions = [(0, 0, 0)]
         self.drones = []
         for agentID in range(num_agents):
-            self.drones.append(DroneSpace(
+            self.drones.append(DroneAgentState(
                 grid_size=grid_size,
                 operational_map=operational_map,
                 start_position=start_positions[agentID],

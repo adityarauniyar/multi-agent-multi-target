@@ -1,9 +1,10 @@
 import numpy as np
+from gym.spaces import Space
 from mdgym.utils.types import ThreeIntTuple, AgentType
 import logging
 
 
-class Space:
+class AgentState:
     """
     SpaceClass contains Observation and Action spaces.
 

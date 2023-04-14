@@ -246,6 +246,18 @@ class MUDMAFEnv(gym.Env):
                                 goal_positions=actors0_start_pos,
                                 num_agents=self.num_agents)
 
+    # def observation_space(self) -> gym.spaces.Dict:
+    #     """
+    #     The observation space.
+    #     """
+    #     return get_item(self.observations.values()).space
+    # @property
+    # def action_space(self) -> gym.spaces.Discrete:
+    #     """
+    #     The action space.
+    #     """
+    #     return self._action_space
+
     # Returns an observation of an agent
     def _observe(self, agent_id):
         assert (agent_id >= 0)
@@ -413,7 +425,7 @@ class MUDMAFEnv(gym.Env):
         return num_blocking * BLOCKING_COST
 
     # Executes an action by an agent
-    def _step(self, action_input: ThreeIntTuple, episode: int = 0):
+    def step(self, action_input: ThreeIntTuple, episode: int = 0):
         # episode is an optional variable which will be used on the reward discounting
         self.fresh = False
         n_actions = 9
@@ -624,7 +636,7 @@ class MUDMAFEnv(gym.Env):
                 color = (0, 0, 0)
                 self.create_circle(x, y, size, size, color)
         if action_probs is not None:
-            n_moves = 9 i
+            n_moves = 9
             for agent in range(1, self.num_agents + 1):
                 # take the a_dist from the given data and draw it on the frame
                 a_dist = action_probs[agent - 1]
