@@ -9,13 +9,18 @@ from matplotlib.colors import hsv_to_rgb
 import random
 import math
 import logging
+from mdgym.utils.map_postprocessing import *
 
 ACTION_COST, IDLE_COST, GOAL_REWARD, COLLISION_REWARD, FINISH_REWARD, BLOCKING_COST = -0.3, -.5, 0.0, -2., 20., -1.
+
 JOINT = False  # True for joint estimation of rewards for close-by agents
+
 DIAGONAL_MOVEMENT = True
 
 # TODO: Update this list of opposite actions
 opposite_actions = {0: -1, 1: 3, 2: 4, 3: 1, 4: 2, 5: 7, 6: 8, 7: 5, 8: 6}
+
+SEED = 123
 
 
 def get_finish_reward():
@@ -50,7 +55,8 @@ class MUDMAFEnv(gym.Env):
             size=(10, 40),
             obstacle_prob_range=(0, .5),
             full_help=False,
-            blank_world=False
+            blank_world=False,
+            SEED: int = 123
     ):
         """
         Args:
@@ -60,7 +66,7 @@ class MUDMAFEnv(gym.Env):
         """
         self.logger = logging.getLogger(__name__)
 
-        self.logger.info(f"Starting the env with following parameters: num_agents = {num_agents},\n "
+        self.logger.info(f"Starting the MUDMAFEnv with following parameters: num_agents = {num_agents},\n "
                          f"observation Size = {observation_size}, world size = {size}, grid size ={grid_size},\n "
                          f"goals length = {len(goals0) if goals0 is not None else 0}, obstacle prob= {obstacle_prob_range},\n"
                          f" full help = {full_help}, black world ={blank_world}\n")
@@ -79,7 +85,7 @@ class MUDMAFEnv(gym.Env):
         self.mutex = Lock()
 
         # Initialize data structures
-        self._set_world(world0, goals0, blank_world=blank_world)
+        self._set_world(world0, goals0, blank_world=blank_world, SEED=SEED)
 
         self.action_space = spaces.Tuple([spaces.Discrete(self.num_agents), spaces.Discrete(9)])
 
@@ -119,38 +125,42 @@ class MUDMAFEnv(gym.Env):
     def get_obstacle_map(self):
         return (self.world.state == 0).astype(int)
 
-    def get_goals(self):
+    def get_actor_positions(self):
         result = []
         for i in range(1, self.num_agents + 1):
             result.append(self.world.get_goal_by_id(i))
         return result
 
-    def get_positions(self):
+    def get_agent_positions(self):
         result = []
-        for i in range(1, self.num_agents + 1):
+        for i in range(self.num_agents):
             result.append(self.world.get_position_by_id(i))
         return result
 
-    def _set_world(self, world0=None, actors0_start_pos=None, blank_world=False):
+    def _set_world(self, obstacle_map0=None, actors0_start_pos=None, blank_world=False, SEED: int = 123):
         self.logger.info(f"Trying to set world now...")
 
+        self.logger.debug(f"Setting seed as {SEED} for the environment...")
+        np.random.seed(SEED)
+
         # blank_world is a flag indicating that the world given has no agent or goal positions
-        def get_connected_region(world: np.ndarray, regions_dict, x: int, y: int):
+        def get_connected_region(obstacle_map: np.ndarray, regions_dict, x: int, y: int):
+
             sys.setrecursionlimit(1000000)
             '''returns a list of tuples of connected squares to the given tile
             this is memoized with a dict'''
             if (x, y) in regions_dict:
                 return regions_dict[(x, y)]
             visited = set()
-            sx, sy = world.shape[0], world.shape[1]
+            sx, sy = obstacle_map.shape[0], obstacle_map.shape[1]
             work_list = [(x, y)]
             while len(work_list) > 0:
                 (i, j) = work_list.pop()
                 if i < 0 or i >= sx or j < 0 or j >= sy:  # out of bounds, return
                     continue
-                if world[i, j] == 1:
+                if obstacle_map[i, j] == 1:
                     continue  # crashes
-                if world[i, j] > 0:
+                if obstacle_map[i, j] > 0:
                     regions_dict[(i, j)] = visited
                 if (i, j) in visited:
                     continue
@@ -164,7 +174,7 @@ class MUDMAFEnv(gym.Env):
 
         # defines the State object, which includes initializing goals and agents
         # sets the world to world0 and goals, or if they are None randomizes world
-        if not (world0 is None):
+        if not (obstacle_map0 is None):
             self.logger.info("World is not none and extracting the start and goal location ...")
             if actors0_start_pos is None and not blank_world:
                 raise Exception("you gave a world with no goals!")
@@ -175,9 +185,9 @@ class MUDMAFEnv(gym.Env):
                 agent_counter = 1
                 drone_start_positions = []
                 while agent_counter <= self.num_agents:
-                    x, y = np.random.randint(0, world0.shape[0]), np.random.randint(0, world0.shape[1])
-                    if world0[x, y] == 0:
-                        world0[x, y] = agent_counter
+                    x, y = np.random.randint(0, obstacle_map0.shape[0]), np.random.randint(0, obstacle_map0.shape[1])
+                    if obstacle_map0[x, y] == 0:
+                        obstacle_map0[x, y] = agent_counter
                         drone_start_positions.append((x, y, 0))
                         agent_counter += 1
 
@@ -191,27 +201,30 @@ class MUDMAFEnv(gym.Env):
 
                     corresponding_drone_pos = drone_start_positions[goal_counter - 1]
 
-                    valid_tiles = get_connected_region(world0, agent_regions, corresponding_drone_pos[0],
+                    valid_tiles = get_connected_region(obstacle_map0, agent_regions, corresponding_drone_pos[0],
                                                        corresponding_drone_pos[1])  # crashes
 
                     x, y = random.choice(list(valid_tiles))
                     actor0_start_pos = (x, y, 0)
 
-                    if actor0_start_pos not in actors0_start_pos and world0[x, y] != 1:
+                    if actor0_start_pos not in actors0_start_pos and obstacle_map0[x, y] != 1:
                         actors0_start_pos.append(actor0_start_pos)
                         goal_counter += 1
 
-                self.initial_world = world0.copy()
-                self.initial_goals = actors0_start_pos.copy()
+                self.initial_world = obstacle_map0.copy()
+                self.initial_actor_starts = actors0_start_pos.copy()
+                self.initial_operational_map = invert_array(self.initial_world)
                 self.world = WorldState(grid_size=self.grid_size,
-                                        operational_map=self.initial_world,
-                                        goal_positions=self.initial_goals,
+                                        operational_map=self.initial_operational_map,
+                                        start_positions=drone_start_positions,
+                                        goal_positions=self.initial_actor_starts,
                                         num_agents=self.num_agents)
                 return
-            self.initial_world = world0
-            self.initial_goals = actors0_start_pos
+            self.initial_world = obstacle_map0
+            self.initial_actor_starts = actors0_start_pos
+            self.operational_map = invert_array(obstacle_map0)
             self.world = WorldState(grid_size=self.grid_size,
-                                    operational_map=world0,
+                                    operational_map=self.operational_map,
                                     goal_positions=actors0_start_pos,
                                     num_agents=self.num_agents)
             return
@@ -228,10 +241,9 @@ class MUDMAFEnv(gym.Env):
         while agent_counter <= self.num_agents:
             x, y = np.random.randint(0, world.shape[0]), np.random.randint(0, world.shape[1])
             if world[x, y] == 0:
-                world[x, y] = agent_counter
-                drone_start_positions.append((x, y))
+                drone_start_positions.append((x, y, 0))
                 agent_counter += 1
-
+        self.logger.debug(f"Randomly generated drone positions are : {drone_start_positions}")
         # RANDOMIZE THE GOALS OF AGENTS/ ACTOR START POSITIONS
         actors0_start_pos = []
         goal_counter = 1
@@ -239,22 +251,29 @@ class MUDMAFEnv(gym.Env):
         while goal_counter <= self.num_agents:
             corresponding_drone_pos = drone_start_positions[goal_counter - 1]
 
-            valid_tiles = get_connected_region(world, agent_regions, corresponding_drone_pos[0],
-                                               corresponding_drone_pos[1])
+            # valid_tiles = get_connected_region(world, agent_regions, corresponding_drone_pos[0],
+            #                                    corresponding_drone_pos[1])
 
+            drone_start_pos_xy = (corresponding_drone_pos[0], corresponding_drone_pos[1])
+            valid_tiles = get_reachable_locations(world, drone_start_pos_xy)
             x, y = random.choice(list(valid_tiles))
             actor0_start_pos = (x, y, 0)
 
             if actor0_start_pos not in actors0_start_pos and world[x, y] != 1:
                 actors0_start_pos.append(actor0_start_pos)
+                self.logger.debug(f"Drone{goal_counter-1} Start@{corresponding_drone_pos}; "
+                                  f"Actor{goal_counter-1} Start@{actor0_start_pos}.")
                 goal_counter += 1
 
         self.initial_world = world
-        self.initial_goals = actors0_start_pos
+        self.initial_actor_starts = actors0_start_pos
+        self.logger.debug(f"World: \n{world}")
         self.logger.info(f"Setting world with grid size = {self.grid_size}, world size = {world.shape},"
                          f"\ngoal positions len = {len(actors0_start_pos)}, num agents = {self.num_agents}")
+        self.operational_map = invert_array(world)
         self.world = WorldState(grid_size=self.grid_size,
-                                operational_map=world,
+                                operational_map=self.operational_map,
+                                start_positions=drone_start_positions,
                                 goal_positions=actors0_start_pos,
                                 num_agents=self.num_agents)
 
@@ -674,6 +693,8 @@ if __name__ == '__main__':
                     grid_size=1.0,
                     goals0=None,
                     size=(20, 20),
-                    obstacle_prob_range=(.1, .2)
+                    obstacle_prob_range=(.1, .2),
+                    SEED=SEED
                     )
+    logging.info(f"Starting Agent positions: {env.get_agent_positions()}")
     # print(coordinationRatio(env))

@@ -2,6 +2,7 @@ from mdgym.spaces.agentstate import AgentState
 from math import floor
 from mdgym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
 import numpy as np
+import logging
 
 
 class DroneAgentState(AgentState):
@@ -45,6 +46,9 @@ class DroneAgentState(AgentState):
         self.viewing_range = viewing_range  # range of the drone's camera view
 
         self.observation_space_size = observation_space_size
+
+        self.logger.info(f"[Drone Space for agent {self.agent_id} Created Successfully]")
+        self.logger.debug(vars(self))
 
     @property
     def current_cam_coverage_locations(self) -> TwoIntTupleList:
@@ -203,14 +207,22 @@ class DronesSpace:
             observation_space_size: int = 10,
             num_agents: int = 1
     ):
+        self.logger = logging.getLogger(__name__)
+
         if start_positions is None:
             start_positions = [(0, 0, 0)]
         if goal_positions is None:
             goal_positions = [(0, 0, 0)]
         self.drones = []
 
+        self.logger.info(f"Starting the Drone(s)Space with following parameters: num_agents = {num_agents},\n "
+                         f"observation Size = {observation_space_size}, world size = {operational_map.size}, "
+                         f"grid size ={grid_size},"
+                         f" Actors position length = {len(goal_positions) if goal_positions is not None else 0}, "
+                         f" Drones position length = {len(start_positions) if start_positions is not None else 0}, ")
+
         for agentID in range(num_agents):
-            print(f"Current agent Id is {agentID}")
+            self.logger.info(f"Creating DroneAgentState for agent Id {agentID}")
             self.drones.append(DroneAgentState(
                 grid_size=grid_size,
                 operational_map=operational_map,

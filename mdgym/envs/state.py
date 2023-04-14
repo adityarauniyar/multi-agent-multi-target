@@ -24,6 +24,10 @@ class WorldState:
             num_agents: int = 1
     ):
         self.logger = logging.getLogger(__name__)
+        self.logger.info(f"Starting the WorldState with following parameters: num_agents = {num_agents},\n "
+                         f"observation Size = {observation_space_size}, world size = {operational_map.size}, "
+                         f"grid size ={grid_size},"
+                         f" Actors position length = {len(goal_positions) if goal_positions is not None else 0}, ")
 
         if goal_positions is None:
             goal_positions = [(0, 0, 0)]
@@ -33,6 +37,7 @@ class WorldState:
         self.goals = goal_positions.copy()
         self.num_agents = num_agents
         self.operational_map = operational_map
+        self.logger.debug(f"Operational map @ World State:\n{self.operational_map}")
 
         self.state = DronesSpace(
             grid_size=grid_size,

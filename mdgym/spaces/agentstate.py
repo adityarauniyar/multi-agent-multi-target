@@ -59,8 +59,8 @@ class AgentState:
         self.total_translation_dirs = len(self.translation_dirs)
 
         # rotational directions in degrees
-        self.rotation_dirs = [45, 90, 135, 180,  # Rotations in left, counter-clockwise as positive
-                              -45, -90, -135, -180]  # Rotations in right, clockwise as negative
+        self.rotation_dirs = [45,   # Rotations in left, counter-clockwise as positive
+                              -45]  # Rotations in right, clockwise as negative
         self.total_rotation_dirs = len(self.rotation_dirs)
 
         self.logger = logging.getLogger(__name__)

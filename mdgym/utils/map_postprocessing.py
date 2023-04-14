@@ -1,5 +1,38 @@
 import numpy as np
 import networkx as nx
+from mdgym.utils.types import *
+
+
+def invert_array(arr):
+    return np.where(arr == 0, 1, 0)
+
+
+def get_reachable_locations(obstacle_map: np.ndarray, start_loc: TwoIntTuple):
+    """
+    Returns a list of all the reachable locations from a given start location that are not obstacles.
+
+    Parameters:
+    obstacle_map (numpy.ndarray): A 2D numpy array where 1 represents an obstacle and 0 represents no obstacle.
+    start_loc (tuple): A tuple representing the starting location (x, y).
+
+    Returns:
+    reachable_locs (list): A list of tuples representing all the reachable locations from the start location that are not obstacles.
+    """
+    x, y = start_loc
+    visited = {(x, y)}
+    queue = [(x, y)]
+    reachable_locs = []
+
+    while queue:
+        x, y = queue.pop(0)
+        for i, j in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]:
+            if 0 <= i < obstacle_map.shape[0] and 0 <= j < obstacle_map.shape[1]:
+                if obstacle_map[i][j] == 0 and (i, j) not in visited:
+                    visited.add((i, j))
+                    queue.append((i, j))
+                    reachable_locs.append((i, j))
+
+    return reachable_locs
 
 
 def get_adj_matrix_from_numpy(obstacle_map: np.ndarray):
