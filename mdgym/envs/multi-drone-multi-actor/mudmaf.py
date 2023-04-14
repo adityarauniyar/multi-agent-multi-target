@@ -8,6 +8,7 @@ import sys
 from matplotlib.colors import hsv_to_rgb
 import random
 import math
+import logging
 
 ACTION_COST, IDLE_COST, GOAL_REWARD, COLLISION_REWARD, FINISH_REWARD, BLOCKING_COST = -0.3, -.5, 0.0, -2., 20., -1.
 JOINT = False  # True for joint estimation of rewards for close-by agents
@@ -26,7 +27,7 @@ def astar(world, start, goal, robots=[]):
     for (i, j) in robots:
         world[i, j] = 1
     try:
-        #TODO: get the path from MStar using Networkx lib
+        # TODO: get the path from MStar using Networkx lib
         path = None
     except Exception as err:
         path = None
@@ -57,6 +58,13 @@ class MUDMAFEnv(gym.Env):
             obstacle_prob_range: range of probabilities that a given block is an obstacle
             full_help
         """
+        self.logger = logging.getLogger(__name__)
+
+        self.logger.info(f"Starting the env with following parameters: num_agents = {num_agents},\n "
+                         f"observation Size = {observation_size}, world size = {size}, grid size ={grid_size},\n "
+                         f"goals length = {len(goals0) if goals0 is not None else 0}, obstacle prob= {obstacle_prob_range},\n"
+                         f" full help = {full_help}, black world ={blank_world}\n")
+
         # Initialize member variables
         self.num_agents = num_agents
         # a way of doing joint rewards
@@ -124,6 +132,8 @@ class MUDMAFEnv(gym.Env):
         return result
 
     def _set_world(self, world0=None, actors0_start_pos=None, blank_world=False):
+        self.logger.info(f"Trying to set world now...")
+
         # blank_world is a flag indicating that the world given has no agent or goal positions
         def get_connected_region(world: np.ndarray, regions_dict, x: int, y: int):
             sys.setrecursionlimit(1000000)
@@ -138,7 +148,7 @@ class MUDMAFEnv(gym.Env):
                 (i, j) = work_list.pop()
                 if i < 0 or i >= sx or j < 0 or j >= sy:  # out of bounds, return
                     continue
-                if world[i, j] == -1:
+                if world[i, j] == 1:
                     continue  # crashes
                 if world[i, j] > 0:
                     regions_dict[(i, j)] = visited
@@ -155,7 +165,7 @@ class MUDMAFEnv(gym.Env):
         # defines the State object, which includes initializing goals and agents
         # sets the world to world0 and goals, or if they are None randomizes world
         if not (world0 is None):
-
+            self.logger.info("World is not none and extracting the start and goal location ...")
             if actors0_start_pos is None and not blank_world:
                 raise Exception("you gave a world with no goals!")
 
@@ -241,6 +251,8 @@ class MUDMAFEnv(gym.Env):
 
         self.initial_world = world
         self.initial_goals = actors0_start_pos
+        self.logger.info(f"Setting world with grid size = {self.grid_size}, world size = {world.shape},"
+                         f"\ngoal positions len = {len(actors0_start_pos)}, num agents = {self.num_agents}")
         self.world = WorldState(grid_size=self.grid_size,
                                 operational_map=world,
                                 goal_positions=actors0_start_pos,
@@ -274,6 +286,7 @@ class MUDMAFEnv(gym.Env):
 
     # Resets environment
     def _reset(self, agent_id, world0=None, goals0=None):
+        self.logger.info(f"Resetting the world now")
         self.finished = False
         self.mutex.acquire()
 
@@ -286,6 +299,7 @@ class MUDMAFEnv(gym.Env):
             self.viewer = None
         on_goal = self.world.get_position_by_id(agent_id) == self.world.get_goal_by_id(agent_id)
         # we assume you don't start blocking anyone (the probability of this happening is insanely low)
+        self.logger.info(f"Resetting the world in complete...")
         return self._listNextValidActions(agent_id), on_goal, False
 
     def _complete(self):
@@ -653,12 +667,13 @@ class MUDMAFEnv(gym.Env):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     n_agents = 8
     env = MUDMAFEnv(num_agents=n_agents,
                     world0=None,
                     grid_size=1.0,
                     goals0=None,
-                    size=(20,20),
+                    size=(20, 20),
                     obstacle_prob_range=(.1, .2)
                     )
     # print(coordinationRatio(env))

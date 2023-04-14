@@ -208,7 +208,9 @@ class DronesSpace:
         if goal_positions is None:
             goal_positions = [(0, 0, 0)]
         self.drones = []
+
         for agentID in range(num_agents):
+            print(f"Current agent Id is {agentID}")
             self.drones.append(DroneAgentState(
                 grid_size=grid_size,
                 operational_map=operational_map,
