@@ -39,7 +39,7 @@ class WorldState:
         self.operational_map = operational_map
         self.logger.debug(f"Operational map @ World State:\n{self.operational_map}")
 
-        self.state = DronesSpace(
+        self.agent_state = DronesSpace(
             grid_size=grid_size,
             operational_map=operational_map,
             start_positions=start_positions,
@@ -56,7 +56,7 @@ class WorldState:
     def agents_curr_pos(self) -> List[ThreeIntTuple]:
         agents_curr_pos = [(-1, -1, -1) for _ in range(self.num_agents)]
         for agent_id in range(self.num_agents):
-            agents_curr_pos[agent_id] = self.state.drones[agent_id].current_position
+            agents_curr_pos[agent_id] = self.agent_state.drones[agent_id].current_position
 
         return agents_curr_pos
 
@@ -64,7 +64,7 @@ class WorldState:
     def agents_prev_pos(self) -> List[ThreeIntTuple]:
         agents_prev_pos = [(-1, -1, -1) for _ in range(self.num_agents)]
         for agent_id in range(self.num_agents):
-            agents_prev_pos[agent_id] = self.state.drones[agent_id].previous_position
+            agents_prev_pos[agent_id] = self.agent_state.drones[agent_id].previous_position
 
         return agents_prev_pos
 
@@ -72,11 +72,11 @@ class WorldState:
     def agents_goal_pos(self) -> List[ThreeIntTuple]:
         agents_goal_pos = [(-1, -1, -1) for _ in range(self.num_agents)]
         for agent_id in range(self.num_agents):
-            agents_goal_pos[agent_id] = self.state.drones[agent_id].goal_position
+            agents_goal_pos[agent_id] = self.agent_state.drones[agent_id].goal_position
 
         return agents_goal_pos
 
-    def get_position_by_id(self, agent_id) -> ThreeIntTuple:
+    def get_agents_position_by_id(self, agent_id) -> ThreeIntTuple:
         return self.agents_curr_pos[agent_id]
 
     def get_past_position_by_id(self, agent_id) -> ThreeIntTuple:
@@ -105,7 +105,7 @@ class WorldState:
         new_position = (new_position_with_orient[0], new_position_with_orient[1])
 
         # up until now we haven't moved the agent, so getPos returns the "old" location
-        last_position_with_orient = self.get_position_by_id(agent_id)
+        last_position_with_orient = self.get_agents_position_by_id(agent_id)
         last_position = (last_position_with_orient[0], last_position_with_orient[1])
 
         for agent in range(0, self.num_agents):
@@ -114,7 +114,7 @@ class WorldState:
             a_past_with_orient = self.get_past_position_by_id(agent)
             a_past = (a_past_with_orient[0], a_past_with_orient[1])
 
-            a_pres_with_orient = self.get_position_by_id(agent)
+            a_pres_with_orient = self.get_agents_position_by_id(agent)
             a_pres = (a_pres_with_orient[0], a_pres_with_orient[1])
             if collide(a_past, a_pres, last_position, new_position):
                 return True
@@ -135,7 +135,7 @@ class WorldState:
 
         # Moving to the same place OR staying still
         if new_position == self.agents_curr_pos[agent_id]:
-            self.state.drones[agent_id].move_to(new_position=new_position)
+            self.agent_state.drones[agent_id].move_to(new_position=new_position)
             if new_position == self.agents_goal_pos[agent_id]:
                 self.logger.debug(f"Agent{agent_id} is at the GOAL location{new_position} and moved to it. ")
                 return 1
@@ -144,7 +144,7 @@ class WorldState:
                 return 0
 
         # Check and update if it is a valid move
-        if not self.state.drones[agent_id].is_valid_action(new_position=new_position):
+        if not self.agent_state.drones[agent_id].is_valid_action(new_position=new_position):
             return -1
 
         # Check and update if it doesn't collide with any other agents
@@ -158,13 +158,13 @@ class WorldState:
 
         # All the valid move conditions
         # Agent just reaching the goal location
-        assert (self.state.drones[agent_id].move_to(new_position=new_position) == True)
+        assert (self.agent_state.drones[agent_id].move_to(new_position=new_position) == True)
 
         if new_position == self.agents_goal_pos[agent_id]:
             self.logger.debug(f"Agent{agent_id} is at the GOAL location{new_position} and moved to it. ")
             return 1
 
-        elif self.state.drones[agent_id].previous_position == self.state.drones[agent_id].goal_position:
+        elif self.agent_state.drones[agent_id].previous_position == self.agent_state.drones[agent_id].goal_position:
             self.logger.debug(f"Agent{agent_id} moved to new location{new_position} from goal location.")
             return 2
 
@@ -173,10 +173,10 @@ class WorldState:
             return 0
 
     def get_translated_pos(self, agent_id: int, action: int) -> ThreeIntTuple:
-        return self.state.drones[agent_id].get_new_translated_position_by_seq(action)
+        return self.agent_state.drones[agent_id].get_new_translated_position_by_seq(action)
 
     def get_rotated_pos(self, agent_id: int, action: int) -> ThreeIntTuple:
-        return self.state.drones[agent_id].get_new_rotated_position_by_seq(action)
+        return self.agent_state.drones[agent_id].get_new_rotated_position_by_seq(action)
 
     def act(self, agent_id: int, translation_seq: int, rotation_seq: int = None) -> int:
         # 0     1   2   3   4   5   6   7   8
@@ -185,7 +185,7 @@ class WorldState:
 
         # Check if rotation is needed as action
         if rotation_seq is not None:
-            new_pos[2] += self.state.drones[agent_id].rotation_dirs[rotation_seq]
+            new_pos[2] += self.agent_state.drones[agent_id].rotation_dirs[rotation_seq]
 
         moved_res = self.move_agent(new_pos, agent_id)
         return moved_res
@@ -194,6 +194,6 @@ class WorldState:
     def done(self) -> bool:
         num_complete = 0
         for i in range(self.num_agents):
-            if self.state.drones[i].current_position == self.state.drones[i].goal_position:
+            if self.agent_state.drones[i].current_position == self.agent_state.drones[i].goal_position:
                 num_complete += 1
         return num_complete == self.num_agents  # , numComplete/float(len(self.agents))
