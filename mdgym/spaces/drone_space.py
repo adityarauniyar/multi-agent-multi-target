@@ -1,11 +1,11 @@
-from mdgym.spaces.agentstate import AgentState
+from mdgym.spaces.state import State
 from math import floor
 from mdgym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
 import numpy as np
 import logging
 
 
-class DroneAgentState(AgentState):
+class DroneAgentState(State):
     """
     Drone Space Class to capture the behaviour of the drones moving given 2D grid.
 
@@ -42,13 +42,15 @@ class DroneAgentState(AgentState):
 
         self.viewing_angle = viewing_angle  # angle of the drone's camera view
         # TODO: Use the optimal height and angle for filming actors paper to come up with the viewing range.
-        #  Viewing range instead can be replace with the Lens description like MP or Focal Length.
+        #  Viewing range instead can be replaced with the Lens description like MP or Focal Length.
         self.viewing_range = viewing_range  # range of the drone's camera view
 
         self.observation_space_size = observation_space_size
 
         self.logger.info(f"[Drone Space for agent {self.agent_id} Created Successfully]")
-        self.logger.debug(vars(self))
+        # self.logger.(vars(self))
+
+        self.current_actor_id: None | int = None
 
     @property
     def current_cam_coverage_locations(self) -> TwoIntTupleList:
@@ -198,9 +200,9 @@ class DroneAgentState(AgentState):
 class DronesSpace:
     def __init__(
             self,
+            start_positions: List[ThreeIntTuple],
             grid_size: float = 1.0,
             operational_map: np.ndarray = np.ones((3, 3)),
-            start_positions: List[ThreeIntTuple] | None = None,
             goal_positions: List[ThreeIntTuple] | None = None,
             viewing_angle: float = 90.0,
             viewing_range: float = 15.0,
@@ -209,10 +211,6 @@ class DronesSpace:
     ):
         self.logger = logging.getLogger(__name__)
 
-        if start_positions is None:
-            start_positions = [(0, 0, 0)]
-        if goal_positions is None:
-            goal_positions = [(0, 0, 0)]
         self.drones = []
 
         self.logger.info(f"Starting the Drone(s)Space with following parameters: num_agents = {num_agents},\n "
@@ -227,7 +225,7 @@ class DronesSpace:
                 grid_size=grid_size,
                 operational_map=operational_map,
                 start_position=start_positions[agentID],
-                goal_position=goal_positions[agentID],
+                goal_position=goal_positions[agentID] if goal_positions is not None else None,
                 viewing_angle=viewing_angle,
                 viewing_range=viewing_range,
                 observation_space_size=observation_space_size,

@@ -48,6 +48,7 @@ class MUDMAFEnv(gym.Env):
     def __init__(
             self,
             num_agents=1,
+            num_actors=1,
             observation_size=10,
             world0=None,
             grid_size=1.0,
@@ -73,6 +74,8 @@ class MUDMAFEnv(gym.Env):
 
         # Initialize member variables
         self.num_agents = num_agents
+        self.num_actors = num_actors
+
         # a way of doing joint rewards
         self.individual_rewards = np.zeros(num_agents, dtype=float)
         self.observation_size = observation_size
@@ -123,17 +126,17 @@ class MUDMAFEnv(gym.Env):
             return True
 
     def get_obstacle_map(self):
-        return (self.world.agent_state == 0).astype(int)
+        return (self.world.agents_state == 0).astype(int)
 
-    def get_actor_positions(self):
+    def get_actors_position(self):
         result = []
-        for i in range(0, self.num_agents):
-            result.append(self.world.get_goal_by_id(i))
+        for i in range(self.num_actors):
+            result.append(self.world.get_actor_position_by_id(i))
         return result
 
     def get_agent_positions(self):
         result = []
-        for i in range(self.num_agents):
+        for i in range(self.num_actors):
             result.append(self.world.get_agents_position_by_id(i))
         return result
 
@@ -195,6 +198,7 @@ class MUDMAFEnv(gym.Env):
                 # TODO: Randomize the actor positions and then calculate the optimal possible viewing locations
 
                 actors0_start_pos = []
+                actors0_goal_pos = []
                 goal_counter = 1
                 agent_regions = dict()
                 while goal_counter <= self.num_agents:
@@ -206,29 +210,37 @@ class MUDMAFEnv(gym.Env):
 
                     # print(f"Valid choices: {valid_tiles}")
 
-                    x, y = random.choice(list(valid_tiles))
-                    actor0_start_pos = (x, y, 0)
+                    x_actor_start, y_actor_start = random.choice(list(valid_tiles))
+                    actor0_start_pos = (x_actor_start, y_actor_start, 0)
 
-                    if actor0_start_pos not in actors0_start_pos and obstacle_map0[x, y] != 1:
+                    x_actor_goal, y_actor_goal = random.choice(list(valid_tiles))
+                    actor0_goal_pos = (x_actor_goal, y_actor_goal, 0)
+
+                    if actor0_start_pos not in actors0_start_pos and actor0_goal_pos not in actors0_goal_pos:
                         actors0_start_pos.append(actor0_start_pos)
+                        actors0_goal_pos.append(actor0_goal_pos)
                         goal_counter += 1
 
                 self.obstacle_map_initial = obstacle_map0.copy()
                 self.initial_actor_starts = actors0_start_pos.copy()
+                self.initial_actor_goals = actors0_goal_pos.copy()
                 self.initial_operational_map = invert_array(self.obstacle_map_initial)
                 self.world = WorldState(grid_size=self.grid_size,
                                         operational_map=self.initial_operational_map,
-                                        start_positions=drone_start_positions,
-                                        goal_positions=self.initial_actor_starts,
-                                        num_agents=self.num_agents)
+                                        agents_start_position=drone_start_positions,
+                                        actors_start_position=self.initial_actor_starts,
+                                        actors_goal_position=self.initial_actor_goals,
+                                        num_agents=self.num_agents,
+                                        num_actors=self.num_actors)
                 return
             self.obstacle_map_initial = obstacle_map0
             self.initial_actor_starts = actors0_start_pos
             self.operational_map = invert_array(obstacle_map0)
             self.world = WorldState(grid_size=self.grid_size,
                                     operational_map=self.operational_map,
-                                    goal_positions=actors0_start_pos,
-                                    num_agents=self.num_agents)
+                                    actors_start_position=actors0_start_pos,
+                                    num_agents=self.num_agents,
+                                    num_actors=self.num_actors)
             return
 
         # otherwise we have to randomize the world
@@ -248,6 +260,7 @@ class MUDMAFEnv(gym.Env):
         self.logger.debug(f"Randomly generated drone positions are : {drone_start_positions}")
         # RANDOMIZE THE GOALS OF AGENTS/ ACTOR START POSITIONS
         actors0_start_pos = []
+        actors0_goal_pos = []
         goal_counter = 1
         agent_regions = dict()
         while goal_counter <= self.num_agents:
@@ -258,15 +271,20 @@ class MUDMAFEnv(gym.Env):
 
             drone_start_pos_xy = (corresponding_drone_pos[0], corresponding_drone_pos[1])
             valid_tiles = get_reachable_locations(world, drone_start_pos_xy)
-            # print(f"Valid choices: {valid_tiles}")
-            x, y = valid_tiles[np.random.randint(0, len(valid_tiles))]
-            actor0_start_pos = (x, y, 0)
 
-            if actor0_start_pos not in actors0_start_pos and world[x, y] != 1:
+            x_actor_start, y_actor_start = valid_tiles[np.random.randint(0, len(valid_tiles))]
+            actor0_start_pos = (x_actor_start, y_actor_start, 0)
+
+            x_actor_goal, y_actor_goal = valid_tiles[np.random.randint(0, len(valid_tiles))]
+            actor0_goal_pos = (x_actor_goal, y_actor_goal, 0)
+
+            if actor0_start_pos not in actors0_start_pos and actor0_goal_pos not in actors0_goal_pos:
                 actors0_start_pos.append(actor0_start_pos)
-                self.logger.debug(f"Drone{goal_counter-1} Start@{corresponding_drone_pos}; "
-                                  f"Actor{goal_counter-1} Start@{actor0_start_pos}.")
+                actors0_goal_pos.append(actor0_goal_pos)
                 goal_counter += 1
+                self.logger.debug(f"Drone{goal_counter - 1} Start@{corresponding_drone_pos}; "
+                                  f"Actor{goal_counter - 1} Start@{actor0_start_pos}."
+                                  f"Actor{goal_counter - 1} Goal@{actor0_goal_pos}.")
 
         self.obstacle_map_initial = world
         self.initial_actor_starts = actors0_start_pos
@@ -276,9 +294,11 @@ class MUDMAFEnv(gym.Env):
         self.operational_map = invert_array(world)
         self.world = WorldState(grid_size=self.grid_size,
                                 operational_map=self.operational_map,
-                                start_positions=drone_start_positions,
-                                goal_positions=actors0_start_pos,
-                                num_agents=self.num_agents)
+                                agents_start_position=drone_start_positions,
+                                actors_start_position=actors0_start_pos,
+                                actors_goal_position=actors0_goal_pos,
+                                num_agents=self.num_agents,
+                                num_actors=self.num_actors)
 
     # def observation_space(self) -> gym.spaces.Dict:
     #     """
@@ -296,10 +316,10 @@ class MUDMAFEnv(gym.Env):
     def _observe(self, agent_id):
         assert (agent_id >= 0)
 
-        agent_observation_channel = self.world.agent_state.drones[agent_id].get_current_observation_channels()
+        agent_observation_channel = self.world.agents_state.drones[agent_id].get_current_observation_channels()
 
-        dx = self.world.get_goal_by_id(agent_id)[0] - self.world.get_agents_position_by_id(agent_id)[0]
-        dy = self.world.get_goal_by_id(agent_id)[1] - self.world.get_agents_position_by_id(agent_id)[1]
+        dx = self.world.get_agent_goal_by_id(agent_id)[0] - self.world.get_agents_position_by_id(agent_id)[0]
+        dy = self.world.get_agent_goal_by_id(agent_id)[1] - self.world.get_agents_position_by_id(agent_id)[1]
         mag = (dx ** 2 + dy ** 2) ** .5
         if mag != 0:
             dx = dx / mag
@@ -319,7 +339,7 @@ class MUDMAFEnv(gym.Env):
         self.mutex.release()
         if self.viewer is not None:
             self.viewer = None
-        on_goal = self.world.get_agents_position_by_id(agent_id) == self.world.get_goal_by_id(agent_id)
+        on_goal = self.world.get_agents_position_by_id(agent_id) == self.world.get_agent_goal_by_id(agent_id)
         # we assume you don't start blocking anyone (the probability of this happening is insanely low)
         self.logger.info(f"Resetting the world in complete...")
         return self._listNextValidActions(agent_id), on_goal, False
@@ -346,15 +366,15 @@ class MUDMAFEnv(gym.Env):
             n_moves = 9
             neighbors = set()
             for move in range(1, n_moves):  # we don't want to include 0, or it will include itself
-                direction = self.world.agent_state.drones[0].translation_dirs
+                direction = self.world.agents_state.drones[0].translation_dirs
                 dx = direction[0]
                 dy = direction[1]
                 ax = node[0]
                 ay = node[1]
-                if (ax + dx >= self.world.agent_state.shape[0] or ax + dx < 0
-                        or ay + dy >= self.world.agent_state.shape[1] or ay + dy < 0):  # out of bounds
+                if (ax + dx >= self.world.agents_state.shape[0] or ax + dx < 0
+                        or ay + dy >= self.world.agents_state.shape[1] or ay + dy < 0):  # out of bounds
                     continue
-                if self.world.agent_state[ax + dx, ay + dy] == -1:  # collide with static obstacle
+                if self.world.agents_state[ax + dx, ay + dy] == -1:  # collide with static obstacle
                     continue
                 neighbors.add((ax + dx, ay + dy))
             return neighbors
@@ -416,7 +436,7 @@ class MUDMAFEnv(gym.Env):
                 fScore[neighbor] = gScore[neighbor] + heuristic_cost_estimate(neighbor, goal)
 
                 # parse through the gScores
-        costs = self.world.agent_state.copy()
+        costs = self.world.agents_state.copy()
         for (i, j) in gScore:
             costs[i, j] = gScore[i, j]
         return costs
@@ -443,10 +463,10 @@ class MUDMAFEnv(gym.Env):
         for agent in other_robots:
             other_locations.remove(self.world.get_agents_position_by_id(agent))
             # before removing
-            path_before = astar(world, self.world.get_agents_position_by_id(agent), self.world.get_goal_by_id(agent),
+            path_before = astar(world, self.world.get_agents_position_by_id(agent), self.world.get_agent_goal_by_id(agent),
                                 robots=other_locations + [self.world.get_agents_position_by_id(agent_id)])
             # after removing
-            path_after = astar(world, self.world.get_goal_by_id(agent), self.world.get_goal_by_id(agent),
+            path_after = astar(world, self.world.get_agent_goal_by_id(agent), self.world.get_agent_goal_by_id(agent),
                                robots=other_locations)
             other_locations.append(self.world.get_agents_position_by_id(agent))
 
@@ -545,7 +565,7 @@ class MUDMAFEnv(gym.Env):
         nextActions = self._listNextValidActions(agent_id, action, episode=episode)
 
         # on_goal estimation
-        on_goal = self.world.get_agents_position_by_id(agent_id) == self.world.get_goal_by_id(agent_id)
+        on_goal = self.world.get_agents_position_by_id(agent_id) == self.world.get_agent_goal_by_id(agent_id)
 
         # Unlock mutex
         self.mutex.release()
@@ -560,14 +580,14 @@ class MUDMAFEnv(gym.Env):
         n_moves = 9
 
         for action in range(1, n_moves):
-            direction = self.world.agent_state.drones[0].translation_dirs
+            direction = self.world.agents_state.drones[0].translation_dirs
             dx, dy = direction[0], direction[1]
-            if (ax + dx >= self.world.agent_state.shape[0] or ax + dx < 0 or ay + dy >= self.world.agent_state.shape[
+            if (ax + dx >= self.world.agents_state.shape[0] or ax + dx < 0 or ay + dy >= self.world.agents_state.shape[
                 1] or ay + dy < 0):  # out of bounds
                 continue
-            if self.world.agent_state[ax + dx, ay + dy] < 0:  # collide with static obstacle
+            if self.world.agents_state[ax + dx, ay + dy] < 0:  # collide with static obstacle
                 continue
-            if self.world.agent_state[ax + dx, ay + dy] > 0:  # collide with robot
+            if self.world.agents_state[ax + dx, ay + dy] > 0:  # collide with robot
                 continue
             # check for diagonal collisions
             if DIAGONAL_MOVEMENT:
@@ -632,24 +652,24 @@ class MUDMAFEnv(gym.Env):
         if close:
             return
         # values is an optional parameter which provides a visualization for the value of each agent per step
-        size = screen_width / max(self.world.agent_state.shape[0], self.world.agent_state.shape[1])
+        size = screen_width / max(self.world.agents_state.shape[0], self.world.agents_state.shape[1])
         colors = self.initColors()
         if self.viewer is None:
             self.viewer = rendering.Viewer(screen_width, screen_height)
             self.reset_renderer = True
         if self.reset_renderer:
             self.create_rectangle(0, 0, screen_width, screen_height, (.6, .6, .6), permanent=True)
-            for i in range(self.world.agent_state.shape[0]):
+            for i in range(self.world.agents_state.shape[0]):
                 start = 0
                 end = 1
                 scanning = False
                 write = False
-                for j in range(self.world.agent_state.shape[1]):
-                    if self.world.agent_state[i, j] != -1 and not scanning:  # free
+                for j in range(self.world.agents_state.shape[1]):
+                    if self.world.agents_state[i, j] != -1 and not scanning:  # free
                         start = j
                         scanning = True
-                    if (j == self.world.agent_state.shape[1] - 1 or self.world.agent_state[i, j] == -1) and scanning:
-                        end = j + 1 if j == self.world.agent_state.shape[1] - 1 else j
+                    if (j == self.world.agents_state.shape[1] - 1 or self.world.agents_state[i, j] == -1) and scanning:
+                        end = j + 1 if j == self.world.agents_state.shape[1] - 1 else j
                         scanning = False
                         write = True
                     if write:
@@ -661,14 +681,14 @@ class MUDMAFEnv(gym.Env):
             i, j, _ = self.world.get_agents_position_by_id(agent)
             x = i * size
             y = j * size
-            color = colors[self.world.agent_state[i, j]]
+            color = colors[self.world.agents_state[i, j]]
             self.create_rectangle(x, y, size, size, color)
-            i, j, _ = self.world.get_goal_by_id(agent)
+            i, j, _ = self.world.get_agent_goal_by_id(agent)
             x = i * size
             y = j * size
             color = colors[self.world.goals[i, j]]
             self.create_circle(x, y, size, size, color)
-            if self.world.get_goal_by_id(agent) == self.world.get_agents_position_by_id(agent):
+            if self.world.get_agent_goal_by_id(agent) == self.world.get_agents_position_by_id(agent):
                 color = (0, 0, 0)
                 self.create_circle(x, y, size, size, color)
         if action_probs is not None:
@@ -678,7 +698,7 @@ class MUDMAFEnv(gym.Env):
                 a_dist = action_probs[agent - 1]
                 if a_dist is not None:
                     for m in range(n_moves):
-                        dx, dy = self.world.agent_state.drones[0].translation_dirs
+                        dx, dy = self.world.agents_state.drones[0].translation_dirs
                         x = (self.world.get_agents_position_by_id(agent)[0] + dx) * size
                         y = (self.world.get_agents_position_by_id(agent)[1] + dy) * size
                         s = a_dist[m] * size
