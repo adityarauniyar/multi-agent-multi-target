@@ -4,7 +4,7 @@ from mdgym.utils.types import ThreeIntTuple, AgentType
 import logging
 
 
-class AgentState:
+class State:
     """
     SpaceClass contains Observation and Action spaces.
 
