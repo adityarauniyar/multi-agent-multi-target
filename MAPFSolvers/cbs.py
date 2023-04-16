@@ -1,7 +1,7 @@
 import time as timer
 import heapq
 import random
-from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
+from MAPFSolvers.single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
 import numpy as np
 from typing import List, Tuple
 
