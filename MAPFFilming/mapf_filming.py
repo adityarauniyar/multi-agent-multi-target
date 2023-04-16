@@ -22,6 +22,7 @@ class MAPFFilming(MUDMAFEnv):
     ):
         super().__init__(
             num_agents=num_agents,
+            num_actors=num_actors,
             observation_size=observation_size,
             world0=world0,
             grid_size=grid_size,
@@ -45,17 +46,19 @@ class MAPFFilming(MUDMAFEnv):
         obstacle_coords = [(i, j) for i, j in obstacle_coords]
         return obstacle_coords
 
-    def get_cbs_mapf(self):
+    def get_cbs_mapf(self) -> List[List[Tuple[ThreeIntTuple]]]:
         current_agents_start_pos = self.get_agent_positions()
         current_agents_start_pos_xy = [(x, y) for x, y, _ in current_agents_start_pos]
 
-        current_actors_pos = self.get_actor_positions()
+        current_actors_pos = self.get_actors_position()
         current_actors_pos_xy = [(x, y) for x, y, _ in current_actors_pos]
 
-        # Assigning agents to actors and its goal location for optimal viewing angle
+        # Assigning agents to actors
         for actor_id in range(self.num_agents):
-            self.logger.debug(f"Current Agent {actor_id} tacks {self.world.agent_state.drones[actor_id].current_actor_id}")
-            self.world.agent_state.drones[actor_id].current_actor_id = actor_id
+            self.logger.debug(
+                f"Current Agent {actor_id} tacks {self.world.agents_state.drones[actor_id].current_actor_id}")
+            self.world.agents_state.drones[actor_id].current_actor_id = actor_id
+        # Assigning and its goal location for optimal viewing angle
         current_agents_goal_pos = current_actors_pos
         current_agents_goal_pos_xy = [(x, y) for x, y, _ in current_agents_goal_pos]
 
@@ -69,23 +72,40 @@ class MAPFFilming(MUDMAFEnv):
                                 goals=current_agents_goal_pos_xy)
 
         # Get the x y paths from start to goal location
-        paths = cbs_planner.find_solution()
+        paths_xy = cbs_planner.find_solution()
+        self.logger.debug(f"Current Agents paths WITHOUT orientation= \n{paths_xy}")
 
         # Update the paths to contain the angle with respect to its corresponding actor assignment
+        paths_xyo = paths_xy.copy()
+        for agent_id in range(self.num_agents):
+            tracking_actor_id = self.world.get_agent_to_actor_id_tracking_id(agent_id)
+            for ts in range(len(paths_xy[agent_id])):
+                x, y = paths_xy[agent_id][ts][0], paths_xy[agent_id][ts][1]
+                actor_x, actor_y, _ = self.world.get_actor_position_by_id(tracking_actor_id)
 
-        self.logger.debug(f"Current Agents paths = \n{paths}")
+                dy = float(actor_y - y)
+                dx = float(actor_x - x)
+
+                orientation_in_deg = int(np.rad2deg(np.arctan2(dy, dx)))
+                paths_xyo[agent_id][ts] = (x, y, orientation_in_deg)
+                print(paths_xyo[agent_id][ts])
+
+        self.logger.info(f"Paths with orientation are: {paths_xyo}")
 
         # Return the paths to the main_mapf engine
+        return paths_xyo
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     n_agents = 3
+    n_actors = 3
 
     SEED = 123
 
     env = MAPFFilming(num_agents=n_agents,
+                      num_actors=n_actors,
                       world0=None,
                       grid_size=1.0,
                       size=(20, 20),
