@@ -189,7 +189,7 @@ class WorldState:
         return False
 
     # try to move agent and return the status
-    def move_agent(self, new_position, agent_id) -> int:
+    def move_agent(self, new_position: ThreeIntTuple, agent_id: int) -> int:
         """
         try to execute action and return whether action was executed or not and why
         returns:
@@ -217,12 +217,14 @@ class WorldState:
 
         # Check and update if it doesn't collide with any other agents
         if (new_position[0], new_position[1]) in self.agents_curr_pos:
+            self.logger.warning(f"Agent{agent_id} led to vertex collision with new location {new_position}.")
             return -3
             # This check is fine as we have already checked if the new_position is the agents current position
 
         # Check if there is no edge collision that includes diagonals between agents
-        if self.diagonal_collision(agent_id=agent_id, new_position_with_orient=new_position):
-            return -3
+        # if self.diagonal_collision(agent_id=agent_id, new_position_with_orient=new_position):
+        #     self.logger.warning(f"Agent{agent_id} led to diagonal collision with new location {new_position}.")
+        #     return -3
 
         # All the valid move conditions
         # Agent just reaching the goal location

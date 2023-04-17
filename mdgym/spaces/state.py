@@ -116,7 +116,7 @@ class State:
             self.logger.debug(f"(Agent: {self.agent_type}, ID: {self.agent_id}) New position({new_position}), outside "
                               f"the map.")
             is_valid = False
-        elif new_position[2] % 45 != 0:
+        elif 360 < new_position[2] < -360:
             self.logger.debug(f"(Agent: {self.agent_type}, ID: {self.agent_id}) New position({new_position}) "
                               f"orientation is not valid.")
             is_valid = False
