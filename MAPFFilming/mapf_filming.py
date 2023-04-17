@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 import random
 
 from matplotlib.path import Path
-from matplotlib.patches import PathPatch
+from matplotlib.patches import PathPatch, Polygon
 
 import cv2
 import os
@@ -118,6 +118,18 @@ class MAPFFilming(MUDMAFEnv):
         patch = PathPatch(path, facecolor=color, edgecolor=color)
         plt.gca().add_patch(patch)
 
+    @staticmethod
+    def plot_drone_icon(ax, x, y, color):
+        # Define the coordinates of the drone icon
+        drone_coords = [(0, 0), (2, 2), (2, 4), (1, 5), (1, 8), (0, 9), (-1, 8), (-1, 5), (-2, 4), (-2, 2)]
+
+        # Scale the coordinates and shift them to the given (x,y) location
+        scaled_coords = [(x + c[0], y + c[1]) for c in drone_coords]
+
+        # Create a polygon object with the scaled coordinates and fill it with the given color
+        drone_icon = Polygon(scaled_coords, closed=True, facecolor=color, edgecolor=color)
+        ax.add_patch(drone_icon)
+
     def render_current_positions(self, timestep: int, save_plots: bool = False, output_dir="data"):
         self.logger.info("Rending current agent and actor positions...")
         random.seed(self.num_actors)
@@ -136,6 +148,7 @@ class MAPFFilming(MUDMAFEnv):
             viewing_range = self.world.agents_state.drones[agent_id].viewing_range
 
             ax.add_artist(plt.Circle((x, y), radius=0.3, color=agents_colors[agent_id]))
+            # self.plot_drone_icon(ax, x, y, color=agents_colors[agent_id])
 
             wedge = Wedge((x, y), viewing_range, orientation - viewing_angle / 2, orientation + viewing_angle / 2,
                           alpha=0.5)
