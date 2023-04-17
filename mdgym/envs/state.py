@@ -213,6 +213,7 @@ class WorldState:
 
         # Check and update if it is a valid move
         if not self.agents_state.drones[agent_id].is_valid_action(new_position=new_position):
+            self.logger.warning(f"Agent{agent_id} is out of bounds for new location {new_position}.")
             return -1
 
         # Check and update if it doesn't collide with any other agents
