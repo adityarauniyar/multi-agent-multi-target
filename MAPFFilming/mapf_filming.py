@@ -44,7 +44,6 @@ class MAPFFilming(MUDMAFEnv):
             SEED=SEED
         )
 
-
     @property
     def next_step(self):
         pass
@@ -184,6 +183,31 @@ class MAPFFilming(MUDMAFEnv):
         out.release()
         self.logger.info(f"Video saved to {os.path.abspath(output_path)}")
 
+    def assign_agents_actors_viewpoints(self):
+
+        # Get 12 point circular formation of view points locations for each of the actors
+
+        # Go over each location of each agent and check of the location doesn't lie in non-operational area and
+        # assign the closest location to the closest agent and update the agent to be engaged.
+
+        # do this for the viewpoints location for other agents till all the agents are assigned.
+
+        # if there are more agents than the actors then assign other agents with a 90 deg viewpoint than the initial
+        # ones
+
+        # if the actors are more than the agents, we only care till the time all agents have something to do.
+
+        pass
+
+    def get_actors_mapf_paths(self):
+
+        # We could either read the paths from a drawing on the image
+
+        # or come up with a random path for certain timestep
+
+        # Should we return the paths or store it in a property? WIP
+        pass
+
     def run_tracking(self):
         # Get the formation filming locations for all the actors.
         # Assign agents to these filming locations as per the nearest locations
@@ -225,8 +249,9 @@ class MAPFFilming(MUDMAFEnv):
                     # moved_res}")
             self.render_current_positions(timestep=ts, save_plots=bSavePlots, output_dir=directory)
         # Render agent positions for each of the actor timestep
-        images_relative_filepaths = [f'{directory}/plot_actors{self.num_actors}_agents{self.num_agents}_ts{timestep}.png'
-                                     for timestep in range(max_length_of_paths)]
+        images_relative_filepaths = [
+            f'{directory}/plot_actors{self.num_actors}_agents{self.num_agents}_ts{timestep}.png'
+            for timestep in range(max_length_of_paths)]
         if bSavePlots:
             self.create_video(images_relative_filepaths,
                               output_path=f'{directory}/actors{self.num_actors}_agents{self.num_agents}.mp4',
