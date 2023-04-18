@@ -9,9 +9,10 @@ from MAPFSolvers.cbs import CBSSolver
 import matplotlib.animation as animation
 import random
 import math
-
+import imageio
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch, Polygon
+import matplotlib.image as mpimg
 
 import cv2
 import os
@@ -27,11 +28,12 @@ class MAPFFilming(MUDMAFEnv):
             agent_viewing_angle=90,
             observation_size: int = 10,
             world0: np.ndarray | None = None,
+            world_png=None,
             grid_size: float = 1.0,
             size: TwoIntTuple = (10, 40),
             obstacle_prob_range=(0, .5),
             full_help=False,
-            blank_world=False,
+            blank_world=True,
             SEED: int = 123
     ):
         super().__init__(
@@ -39,6 +41,7 @@ class MAPFFilming(MUDMAFEnv):
             num_actors=num_actors,
             observation_size=observation_size,
             world0=world0,
+            world_png=world_png,
             grid_size=grid_size,
             size=size,
             obstacle_prob_range=obstacle_prob_range,
@@ -351,7 +354,11 @@ class MAPFFilming(MUDMAFEnv):
         random.seed(self.num_actors)
         fig, ax = plt.subplots()
         fig.suptitle(f"Timestep: {timestep}; Agents: {self.num_agents}; Actors: {self.num_actors}")
-        ax.imshow(self.operational_map, origin='lower', cmap='gray')
+        if self.world_png is None:
+            ax.imshow(self.operational_map, origin='lower', cmap='gray')
+        else:
+            img = mpimg.imread(self.world_png)
+            ax.imshow(img)
 
         current_agents_position = self.get_agent_positions()
         current_actors_position = self.get_actors_position()
@@ -395,6 +402,7 @@ class MAPFFilming(MUDMAFEnv):
         plt.show()
 
     def create_video(self, image_paths, output_path, fps=30):
+
         # Get the size of the first image
         img = cv2.imread(image_paths[0])
         height, width, _ = img.shape
@@ -404,9 +412,12 @@ class MAPFFilming(MUDMAFEnv):
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
         # Write each image to the video
-        for path in image_paths:
-            img = cv2.imread(path)
-            out.write(img)
+        gif_filename = output_path.replace(".mp4", ".gif")
+        with imageio.get_writer(gif_filename, mode='I', duration=len(image_paths) / fps) as writer:
+            for path in image_paths:
+                img = cv2.imread(path)
+                out.write(img)
+                writer.append_data(img)
 
         # Release the video writer and print output path
         out.release()
@@ -414,7 +425,7 @@ class MAPFFilming(MUDMAFEnv):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
 
     n_agents = 5
     n_actors = 5
@@ -424,6 +435,8 @@ if __name__ == '__main__':
     env = MAPFFilming(num_agents=n_agents,
                       num_actors=n_actors,
                       world0=None,
+                      world_png="../mdgym/envs/multi_drone_multi_actor/hawkins2DMap/grid-maps/obstacle-map-with"
+                                "-segmentation.png",
                       grid_size=1.0,
                       size=(25, 25),
                       obstacle_prob_range=(0.01, 0.011),

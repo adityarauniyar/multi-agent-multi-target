@@ -10,6 +10,9 @@ import random
 import math
 import logging
 from mdgym.utils.map_postprocessing import *
+from mdgym.envs.objects.semantic_object import SemanticObject, ObjectType
+from mdgym.envs.multi_drone_multi_actor.hawkins2DMap.ENV import *
+
 
 ACTION_COST, IDLE_COST, GOAL_REWARD, COLLISION_REWARD, FINISH_REWARD, BLOCKING_COST = -0.3, -.5, 0.0, -2., 20., -1.
 
@@ -51,6 +54,7 @@ class MUDMAFEnv(gym.Env):
             num_actors=1,
             observation_size=10,
             world0=None,
+            world_png=None,
             grid_size=1.0,
             goals0=None,
             size=(10, 40),
@@ -86,6 +90,8 @@ class MUDMAFEnv(gym.Env):
         self.FULL_HELP = full_help
         self.finished = False
         self.mutex = Lock()
+
+        self.world_png = world_png
 
         # Initialize data structures
         self._set_world(world0, goals0, blank_world=blank_world, SEED=SEED)
@@ -177,60 +183,72 @@ class MUDMAFEnv(gym.Env):
 
         # defines the State object, which includes initializing goals and agents
         # sets the world to world0 and goals, or if they are None randomizes world
-        if not (obstacle_map0 is None):
+        self.logger.debug(f"Obstacle status: {obstacle_map0}, World Png = {self.world_png}")
+        if obstacle_map0 is not None or self.world_png is not None:
             self.logger.info("World is not none and extracting the start and goal location ...")
             if actors0_start_pos is None and not blank_world:
                 raise Exception("you gave a world with no goals!")
 
-            if blank_world:
+            if obstacle_map0 is None and self.world_png is not None:
+                self.OperationalSemanticObject = SemanticObject(ObjectType.OBSTACLE, self.world_png, OPERATIONAL_RGB_VALUE, 1)
 
-                # RANDOMIZE THE POSITIONS OF AGENTS/DRONES
+                self.obstacle_map0 = np.where(self.OperationalSemanticObject.presence_grid == 1, 0, 1)
+                self.logger.debug(f"Obstacle map assigned from the given image: \n{np.shape(self.obstacle_map0)}")
+
+            if blank_world:
+                world = self.obstacle_map0
+
+                # RANDOMIZE THE POSITIONS OF AGENTS/DRONE
                 agent_counter = 1
                 drone_start_positions = []
                 while agent_counter <= self.num_agents:
-                    x, y = np.random.randint(0, obstacle_map0.shape[0]), np.random.randint(0, obstacle_map0.shape[1])
-                    if obstacle_map0[x, y] == 0:
-                        obstacle_map0[x, y] = agent_counter
+                    x, y = np.random.randint(0, world.shape[0]), np.random.randint(0, world.shape[1])
+                    if world[x, y] == 0:
                         drone_start_positions.append((x, y, 0))
                         agent_counter += 1
-
-                # RANDOMIZE THE GOALS OF AGENTS OR ACTOR POSITIONS
-                # TODO: Randomize the actor positions and then calculate the optimal possible viewing locations
-
+                self.logger.debug(f"Randomly generated drone positions are : {drone_start_positions}")
+                # RANDOMIZE THE GOALS OF AGENTS/ ACTOR START POSITIONS
                 actors0_start_pos = []
                 actors0_goal_pos = []
                 goal_counter = 1
                 agent_regions = dict()
                 while goal_counter <= self.num_agents:
-
                     corresponding_drone_pos = drone_start_positions[goal_counter - 1]
 
-                    valid_tiles = get_connected_region(obstacle_map0, agent_regions, corresponding_drone_pos[0],
-                                                       corresponding_drone_pos[1])  # crashes
+                    # valid_tiles = get_connected_region(world, agent_regions, corresponding_drone_pos[0],
+                    #                                    corresponding_drone_pos[1])
 
-                    # print(f"Valid choices: {valid_tiles}")
+                    drone_start_pos_xy = (corresponding_drone_pos[0], corresponding_drone_pos[1])
+                    valid_tiles = get_reachable_locations(world, drone_start_pos_xy)
 
-                    x_actor_start, y_actor_start = random.choice(list(valid_tiles))
+                    x_actor_start, y_actor_start = valid_tiles[np.random.randint(0, len(valid_tiles))]
                     actor0_start_pos = (x_actor_start, y_actor_start, 0)
 
-                    x_actor_goal, y_actor_goal = random.choice(list(valid_tiles))
+                    x_actor_goal, y_actor_goal = valid_tiles[np.random.randint(0, len(valid_tiles))]
                     actor0_goal_pos = (x_actor_goal, y_actor_goal, 0)
 
                     if actor0_start_pos not in actors0_start_pos and actor0_goal_pos not in actors0_goal_pos:
                         actors0_start_pos.append(actor0_start_pos)
                         actors0_goal_pos.append(actor0_goal_pos)
                         goal_counter += 1
+                        self.logger.debug(f"Drone{goal_counter - 1} Start@{corresponding_drone_pos}; "
+                                          f"Actor{goal_counter - 1} Start@{actor0_start_pos}."
+                                          f"Actor{goal_counter - 1} Goal@{actor0_goal_pos}.")
 
-                self.obstacle_map_initial = obstacle_map0.copy()
-                self.initial_actor_starts = actors0_start_pos.copy()
-                self.initial_actor_goals = actors0_start_pos.copy()
-                self.initial_actor_goals = actors0_goal_pos.copy()
-                self.initial_operational_map = invert_array(self.obstacle_map_initial)
+                self.obstacle_map_initial = world
+                self.initial_actor_starts = actors0_start_pos
+                self.initial_actor_goals = actors0_goal_pos
+                self.logger.debug(f"World: \n{world}")
+                self.logger.info(f"Setting world with grid size = {self.grid_size}, world size = {world.shape},"
+                                 f"\ngoal positions len = {len(actors0_start_pos)}, num agents = {self.num_agents}"
+                                 f"\nAgents Start: \n{drone_start_positions}\n; Actors Start: \n{actors0_start_pos}"
+                                 f"\nAgents Goals: \n{actors0_goal_pos}")
+                self.operational_map = invert_array(world)
                 self.world = WorldState(grid_size=self.grid_size,
-                                        operational_map=self.initial_operational_map,
+                                        operational_map=self.operational_map,
                                         agents_start_position=drone_start_positions,
-                                        actors_start_position=self.initial_actor_starts,
-                                        actors_goal_position=self.initial_actor_goals,
+                                        actors_start_position=actors0_start_pos,
+                                        actors_goal_position=actors0_goal_pos,
                                         num_agents=self.num_agents,
                                         num_actors=self.num_actors)
                 return

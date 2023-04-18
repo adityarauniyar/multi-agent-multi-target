@@ -8,6 +8,7 @@ class ObjectType(Enum):
     TREE = 1
     STREETLIGHT = 2
     VEHICLE = 3
+    OBSTACLE = 4
 
 
 class SemanticObject:
