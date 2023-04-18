@@ -113,7 +113,13 @@ class MAPFFilming(MUDMAFEnv):
 
     def assign_agents_actors_viewpoints(self):
 
-        # TODO: Write code to refresh assignment status and tracking id
+        # Refresh assignment status and tracking id before assignment
+        for actor_id in range(self.num_actors):
+            self.world.actors_state[actor_id].is_assigned = False
+            self.world.actors_state[actor_id].assigned_to = None
+        for agent_id in range(self.num_agents):
+            self.world.agents_state.drones[agent_id].is_assigned = False
+            self.world.agents_state.drones[agent_id].assigned_to = agent_id
 
         # Get 12 point circular formation of view points locations for each of the actors
         def get_circle_points(grid_location: ThreeIntTuple, radius: int):
@@ -213,9 +219,37 @@ class MAPFFilming(MUDMAFEnv):
         # or come up with a random path for certain timestep
 
         # Should we return the paths or store it in a property? WIP
-        pass
+        actors_starts_pos_xy = [(x, y) for x, y, _ in self.initial_actor_starts]
+        actors_goals_pos_xy = [(x, y) for x, y, _ in self.initial_actor_goals]
+        self.logger.info(f"Getting paths for agents start @ {actors_starts_pos_xy}"
+                         f", and actors goals @ {actors_goals_pos_xy}")
 
-    def run_tracking(self):
+        actors_planner = CBSSolver(my_map=self.obstacle_map_initial,
+                                   starts=actors_starts_pos_xy,
+                                   goals=actors_goals_pos_xy)
+
+        actors_paths = actors_planner.find_solution()
+
+        actors_paths, _ = self.normalize_paths_to_equal_length(paths=actors_paths)
+
+        return actors_paths
+
+    def normalize_paths_to_equal_length(self, paths: List[List[tuple[ThreeIntTuple]]] | list[list[tuple[int, int]]]) \
+            -> tuple[List[List[tuple[ThreeIntTuple | TwoIntTuple]]], int]:
+        # modify the paths such that all agents contain paths of same length
+        max_length_of_paths = max([len(path)] for path in paths)[0]
+        for agent_id in range(self.num_agents):
+            agent_path_length = len(paths[agent_id])
+            if agent_path_length == max_length_of_paths:
+                continue
+            else:
+                for ts in range(agent_path_length, max_length_of_paths):
+                    new_location = paths[agent_id][ts - 1]
+                    paths[agent_id].append(new_location)
+
+        return paths, max_length_of_paths
+
+    def run_tracking_for_current_actors_pos(self, global_timestep: int = 0, bSavePlots: bool = False, directory=None):
         # Get the formation filming locations for all the actors.
         # Assign agents to these filming locations as per the nearest locations
         self.assign_agents_actors_viewpoints()
@@ -223,23 +257,15 @@ class MAPFFilming(MUDMAFEnv):
         agents_paths_xyo = self.get_cbs_mapf()
 
         # modify the paths such that all agents contain paths of same length
-        max_length_of_paths = max([len(path)] for path in agents_paths_xyo)[0]
-        for agent_id in range(self.num_agents):
-            agent_path_length = len(agents_paths_xyo[agent_id])
-            if agent_path_length == max_length_of_paths:
-                continue
-            else:
-                for ts in range(agent_path_length, max_length_of_paths):
-                    new_location = agents_paths_xyo[agent_id][ts - 1]
-                    agents_paths_xyo[agent_id].append(new_location)
+        agents_paths_xyo, max_length_of_paths = self.normalize_paths_to_equal_length(paths=agents_paths_xyo)
 
         # Update new location of all agents and actors from ts 0 to completion
         # **********************************
-        bSavePlots = True  # Choose to save plots and create a video from it
-        directory = f"data/actors{self.num_actors}_agents{self.num_agents}_obs_den{self.PROB[1]}"
+        # Choose to save plots and create a video from it
         # **********************************
-
+        local_timestep = 0
         for ts in range(max_length_of_paths):
+            self.logger.info(f"Current global timestep = {global_timestep + ts}")
             # Update the paths of the agents for corresponding timestep
             moved_res = 0
             for agent_id in range(self.num_agents):
@@ -252,14 +278,45 @@ class MAPFFilming(MUDMAFEnv):
 
                 if moved_res < 0:
                     self.logger.error(f"Cannot move agent{agent_id} to {new_position}, "
-                                      f"Response {moved_res}; Timestep = {ts}")
+                                      f"Response {moved_res}; Global Timestep = {global_timestep + ts}")
                     # raise Exception(f"Cannot move agent{agent_id} to new location({new_position}, Response move = {
                     # moved_res}")
-            self.render_current_positions(timestep=ts, save_plots=bSavePlots, output_dir=directory)
+            self.render_current_positions(timestep=global_timestep + ts, save_plots=bSavePlots,
+                                          output_dir=directory)
+            local_timestep = global_timestep + ts
+
+        return local_timestep
+
+    def run_tracking_for_actor_paths(self):
+        actors_paths_xy = self.get_actors_mapf_paths()
+        self.logger.info(f"Calculated Actors paths = {actors_paths_xy}")
+
+        bSavePlots = True
+        directory = f"data/actors{self.num_actors}_agents{self.num_agents}_obs_den{self.PROB[1]}"
+
+        global_timestep = -1
+
+        for actor_ts in range(len(actors_paths_xy[0])):
+            if actor_ts > 0:
+                # Move all actors to the position at actor timestep ts
+                for actor_id in range(self.num_actors):
+                    new_position = (actors_paths_xy[actor_id][actor_ts][0],
+                                    actors_paths_xy[actor_id][actor_ts][0], 0)
+                    self.world.actors_state[actor_id].move_to(new_position=new_position)
+
+                global_timestep += 1
+                # Render this actor positions
+                self.render_current_positions(timestep=global_timestep, save_plots=bSavePlots, output_dir=directory)
+
+            # global_timestep += 1
+            global_timestep = self.run_tracking_for_current_actors_pos(global_timestep=global_timestep,
+                                                                       bSavePlots=bSavePlots,
+                                                                       directory=directory)
+
         # Render agent positions for each of the actor timestep
         images_relative_filepaths = [
             f'{directory}/plot_actors{self.num_actors}_agents{self.num_agents}_ts{timestep}.png'
-            for timestep in range(max_length_of_paths)]
+            for timestep in range(global_timestep)]
         if bSavePlots:
             self.create_video(images_relative_filepaths,
                               output_path=f'{directory}/actors{self.num_actors}_agents{self.num_agents}.mp4',
@@ -373,6 +430,6 @@ if __name__ == '__main__':
                       SEED=SEED,
                       )
 
-    env.run_tracking()
+    env.run_tracking_for_actor_paths()
 
     # print(coordinationRatio(env))

@@ -66,6 +66,9 @@ class WorldState:
             agent_id=actor_id
         ) for actor_id in range(self.num_actors)]
 
+        # Define the path of each actor to be traveled
+        self.actors_paths = None
+
         assert (len(self.agents_curr_pos) == num_agents)
 
     @property

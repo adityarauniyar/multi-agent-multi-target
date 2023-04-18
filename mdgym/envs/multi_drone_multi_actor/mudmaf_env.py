@@ -223,6 +223,7 @@ class MUDMAFEnv(gym.Env):
 
                 self.obstacle_map_initial = obstacle_map0.copy()
                 self.initial_actor_starts = actors0_start_pos.copy()
+                self.initial_actor_goals = actors0_start_pos.copy()
                 self.initial_actor_goals = actors0_goal_pos.copy()
                 self.initial_operational_map = invert_array(self.obstacle_map_initial)
                 self.world = WorldState(grid_size=self.grid_size,
@@ -239,6 +240,7 @@ class MUDMAFEnv(gym.Env):
             self.world = WorldState(grid_size=self.grid_size,
                                     operational_map=self.operational_map,
                                     actors_start_position=actors0_start_pos,
+                                    actors_goal_position=actors0_start_pos,
                                     num_agents=self.num_agents,
                                     num_actors=self.num_actors)
             return
@@ -288,9 +290,12 @@ class MUDMAFEnv(gym.Env):
 
         self.obstacle_map_initial = world
         self.initial_actor_starts = actors0_start_pos
+        self.initial_actor_goals = actors0_goal_pos
         self.logger.debug(f"World: \n{world}")
         self.logger.info(f"Setting world with grid size = {self.grid_size}, world size = {world.shape},"
-                         f"\ngoal positions len = {len(actors0_start_pos)}, num agents = {self.num_agents}")
+                         f"\ngoal positions len = {len(actors0_start_pos)}, num agents = {self.num_agents}"
+                         f"\nAgents Start: \n{drone_start_positions}\n; Actors Start: \n{actors0_start_pos}"
+                         f"\nAgents Goals: \n{actors0_goal_pos}")
         self.operational_map = invert_array(world)
         self.world = WorldState(grid_size=self.grid_size,
                                 operational_map=self.operational_map,
