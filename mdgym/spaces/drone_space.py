@@ -47,10 +47,8 @@ class DroneAgentState(State):
 
         self.observation_space_size = observation_space_size
 
-        self.logger.info(f"[Drone Space for agent {self.agent_id} Created Successfully]")
         # self.logger.(vars(self))
 
-        self.current_actor_id: None | int = None
 
     @property
     def current_cam_coverage_locations(self) -> TwoIntTupleList:
@@ -220,7 +218,6 @@ class DronesSpace:
                          f" Drones position length = {len(start_positions) if start_positions is not None else 0}, ")
 
         for agentID in range(num_agents):
-            self.logger.info(f"Creating DroneAgentState for agent Id {agentID}")
             self.drones.append(DroneAgentState(
                 grid_size=grid_size,
                 operational_map=operational_map,

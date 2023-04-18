@@ -165,7 +165,7 @@ class CBSSolver(object):
                 'paths': [],
                 'collisions': []}
         for i in range(self.num_of_agents):  # Find initial path for each agent
-            new_path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
+            new_path = a_star(self.my_map.astype(bool), self.starts[i], self.goals[i], self.heuristics[i],
                               i, root['constraints'])
             if new_path is None:
                 raise BaseException('No solutions')
@@ -206,7 +206,6 @@ class CBSSolver(object):
             # Checking if there is any collisions in the paths, if NOT returning the paths
             if len(currNode['collisions']) == 0 or CPU_time_s >= 600:
                 # print("[ALARM] There are no collisions, hence returning the planned path...")
-                self.print_results(currNode)
                 return currNode['paths']
 
                 # Just getting the first collision from the list of collisions and resolving that
@@ -233,7 +232,7 @@ class CBSSolver(object):
                 agent_ID = constraint['agent']
                 # print("[DEBUG] Plainning a new path for agent ({}) with constraints : ({})".format(agent_ID,
                 # new_node['constraints']))
-                new_path = a_star(self.my_map, self.starts[agent_ID], self.goals[agent_ID], self.heuristics[agent_ID],
+                new_path = a_star(self.my_map.astype(bool), self.starts[agent_ID], self.goals[agent_ID], self.heuristics[agent_ID],
                                   agent_ID, new_node['constraints'])
 
                 if new_path is not None and len(new_path) is not []:

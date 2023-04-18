@@ -298,7 +298,8 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
 
             # Checking of the vertex position is an obstacle 
             if my_map[childNode_loc[0]][childNode_loc[1]]:
-                # print("[WARN] The vertex generated is an obstacle, skipping...")
+                # print(f"[WARN] {(childNode_loc[0],childNode_loc[1]]} The vertex generated is an obstacle, "
+                #       "skipping...")
                 continue
 
             # Check for Vertex and Edge collision

@@ -1,3 +1,5 @@
+import heapq
+
 from mdgym.envs.multi_drone_multi_actor.mudmaf_env import MUDMAFEnv
 from mdgym.utils.types import *
 import numpy as np
@@ -6,6 +8,7 @@ from matplotlib.patches import Wedge
 from MAPFSolvers.cbs import CBSSolver
 import matplotlib.animation as animation
 import random
+import math
 
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch, Polygon
@@ -64,23 +67,25 @@ class MAPFFilming(MUDMAFEnv):
         current_actors_pos = self.get_actors_position()
         current_actors_pos_xy = [(x, y) for x, y, _ in current_actors_pos]
 
-        # Assigning agents to actors
-        for actor_id in range(self.num_agents):
-            self.logger.debug(
-                f"Current Agent {actor_id} tacks {self.world.agents_state.drones[actor_id].current_actor_id}")
-            self.world.agents_state.drones[actor_id].current_actor_id = actor_id
-        # Assigning and its goal location for optimal viewing angle
-        current_agents_goal_pos = current_actors_pos
-        current_agents_goal_pos_xy = [(x, y) for x, y, _ in current_agents_goal_pos]
+        # Get assigned agents
+        assigned_agents = self.world.get_assigned_agents()
+        # Get assigned agents start positions
+        assigned_agents_start_pos_xy = [(self.world.get_agents_position_by_id(agent_id)[0],
+                                         self.world.get_agents_position_by_id(agent_id)[1])
+                                        for agent_id in assigned_agents]
+        # Get assigned agents goal positions
+        assigned_agents_goal_pos_xy = [(self.world.get_agent_goal_by_id(agent_id)[0],
+                                        self.world.get_agent_goal_by_id(agent_id)[1])
+                                       for agent_id in assigned_agents]
 
         # Getting the cbs paths from this start and goal locations
-        self.logger.info(f"Getting CBS MAPF paths for \nAgents Starting at {current_agents_start_pos_xy}"
+        self.logger.info(f"Getting CBS MAPF paths for \nAgents Starting at {assigned_agents_start_pos_xy}"
                          f", and\n Actors at {current_actors_pos_xy}...")
         self.logger.info(f"Obstacle map as:  \n{self.obstacle_map_initial}")
 
         cbs_planner = CBSSolver(self.obstacle_map_initial,
-                                starts=current_agents_start_pos_xy,
-                                goals=current_agents_goal_pos_xy)
+                                starts=assigned_agents_start_pos_xy,
+                                goals=assigned_agents_goal_pos_xy)
 
         # Get the x y paths from start to goal location
         paths_xy = cbs_planner.find_solution()
@@ -105,6 +110,160 @@ class MAPFFilming(MUDMAFEnv):
 
         # Return the paths to the main_mapf engine
         return paths_xyo
+
+    def assign_agents_actors_viewpoints(self):
+
+        # TODO: Write code to refresh assignment status and tracking id
+
+        # Get 12 point circular formation of view points locations for each of the actors
+        def get_circle_points(grid_location: ThreeIntTuple, radius: int):
+            self.logger.debug(f"Calculating the viewpoint formation for center location at {grid_location}")
+            center_x, center_y, _ = grid_location
+            points = []
+            for i in range(12):
+                angle = math.radians(30 * i)
+                x = int(round(center_x + radius * math.cos(angle)))
+                y = int(round(center_y + radius * math.sin(angle)))
+                if x < 0 or x >= np.shape(self.obstacle_map_initial)[0] \
+                        or y < 0 or y >= np.shape(self.obstacle_map_initial)[1] \
+                        or self.obstacle_map_initial[x, y] == 1:
+                    self.logger.debug(f"Viewpoint {(x, y)} is out of bounds, skipping...")
+                    continue
+                points.append((x, y))
+            return points
+
+        # Go over each location of each agent and check of the location doesn't lie in non-operational area and
+        # assign the closest location to the closest agent and update the agent to be engaged.
+        num_actors = self.num_actors
+
+        formation_radius = 4 * self.grid_size
+
+        for actor_id in range(num_actors):
+            # Get the formation of viewpoints for the current actor id
+            current_actor_pos = self.world.get_actor_position_by_id(actor_id=actor_id)
+            formation_viewpoints = get_circle_points(current_actor_pos, formation_radius)
+            self.logger.debug(f"Formation points for actor{actor_id}@{current_actor_pos} are {formation_viewpoints}")
+
+            # do this for the viewpoints location for other agents till all the agents are assigned.
+            available_agents_id = self.world.get_unassigned_agents()
+            self.logger.debug(f"Current available agents are {available_agents_id}")
+
+            # Tuple in format: (path_cost, actor_id, agent_id, formation viewpoint(x,y))
+            view_point_allocations = []
+
+            for agent_id in available_agents_id:
+                curr_agent_pos_xy = (self.world.agents_state.drones[agent_id].current_position[0],
+                                     self.world.agents_state.drones[agent_id].current_position[1])
+
+                current_min_viewpoint = None
+                current_min_path_cost = 1e10
+                min_viewpoint_index = None
+                data_paths_to_viewpoints = []
+
+                for view_point_id in range(len(formation_viewpoints)):
+
+                    current_viewpoint = formation_viewpoints[view_point_id]
+                    self.logger.debug(f"current viewpoint is at {current_viewpoint}")
+
+                    cbs_solver = CBSSolver(my_map=self.obstacle_map_initial,
+                                           starts=[curr_agent_pos_xy],
+                                           goals=[current_viewpoint])
+
+                    path = cbs_solver.find_solution()
+                    self.logger.debug(f"Path from CBS: {path}")
+                    current_path_cost = len(path[0])
+
+                    if current_path_cost < current_min_path_cost:
+                        min_viewpoint_index = view_point_id
+                        current_min_viewpoint = current_viewpoint
+                        current_min_path_cost = current_path_cost
+
+                data = (current_min_path_cost, actor_id, agent_id, current_min_viewpoint)
+                self.logger.debug(f"Inserting data with value: {data}")
+
+                heapq.heappush(view_point_allocations, data)
+
+            self.logger.debug(f"view_point_allocations: {view_point_allocations}")
+            path_cost, assign_actor_id, assign_agent_id, assign_viewpoint_xy = heapq.heappop(view_point_allocations)
+
+            self.logger.info(
+                f"Assigning: Agent {assign_agent_id} tracks {assign_actor_id} @ {assign_viewpoint_xy}")
+
+            self.world.actors_state[assign_actor_id].is_assigned = True
+            self.world.agents_state.drones[assign_agent_id].is_assigned = True
+            self.world.actors_state[assign_actor_id].assigned_to = assign_agent_id
+            self.world.agents_state.drones[assign_agent_id].assigned_to = assign_actor_id
+            self.world.agents_state.drones[assign_agent_id].goal_position = (assign_viewpoint_xy[0],
+                                                                             assign_viewpoint_xy[1], 0)
+
+        # TODO: Add logic to track actors such that if agents are more than actors they occupy 90deg viewpoints
+        #   and if actors are more than agents, then do ? (WIP)
+
+        # if there are more agents than the actors then assign other agents with a 90 deg viewpoint than the initial
+        # ones
+
+        # if the actors are more than the agents, we only care till the time all agents have something to do.
+
+        pass
+
+    def get_actors_mapf_paths(self):
+
+        # We could either read the paths from a drawing on the image
+
+        # or come up with a random path for certain timestep
+
+        # Should we return the paths or store it in a property? WIP
+        pass
+
+    def run_tracking(self):
+        # Get the formation filming locations for all the actors.
+        # Assign agents to these filming locations as per the nearest locations
+        self.assign_agents_actors_viewpoints()
+        # Get a conflict resolved paths for these agents to reach the formation location
+        agents_paths_xyo = self.get_cbs_mapf()
+
+        # modify the paths such that all agents contain paths of same length
+        max_length_of_paths = max([len(path)] for path in agents_paths_xyo)[0]
+        for agent_id in range(self.num_agents):
+            agent_path_length = len(agents_paths_xyo[agent_id])
+            if agent_path_length == max_length_of_paths:
+                continue
+            else:
+                for ts in range(agent_path_length, max_length_of_paths):
+                    new_location = agents_paths_xyo[agent_id][ts - 1]
+                    agents_paths_xyo[agent_id].append(new_location)
+
+        # Update new location of all agents and actors from ts 0 to completion
+        # **********************************
+        bSavePlots = True  # Choose to save plots and create a video from it
+        directory = f"data/actors{self.num_actors}_agents{self.num_agents}_obs_den{self.PROB[1]}"
+        # **********************************
+
+        for ts in range(max_length_of_paths):
+            # Update the paths of the agents for corresponding timestep
+            moved_res = 0
+            for agent_id in range(self.num_agents):
+                new_position = agents_paths_xyo[agent_id][ts]
+                if ts > 0:
+                    moved_res = self.world.move_agent(new_position=new_position,
+                                                      agent_id=agent_id)
+                else:
+                    continue
+
+                if moved_res < 0:
+                    self.logger.error(f"Cannot move agent{agent_id} to {new_position}, "
+                                      f"Response {moved_res}; Timestep = {ts}")
+                    # raise Exception(f"Cannot move agent{agent_id} to new location({new_position}, Response move = {
+                    # moved_res}")
+            self.render_current_positions(timestep=ts, save_plots=bSavePlots, output_dir=directory)
+        # Render agent positions for each of the actor timestep
+        images_relative_filepaths = [
+            f'{directory}/plot_actors{self.num_actors}_agents{self.num_agents}_ts{timestep}.png'
+            for timestep in range(max_length_of_paths)]
+        if bSavePlots:
+            self.create_video(images_relative_filepaths,
+                              output_path=f'{directory}/actors{self.num_actors}_agents{self.num_agents}.mp4',
+                              fps=2)
 
     @staticmethod
     def plot_star(x, y, color):
@@ -196,95 +355,21 @@ class MAPFFilming(MUDMAFEnv):
         out.release()
         self.logger.info(f"Video saved to {os.path.abspath(output_path)}")
 
-    def assign_agents_actors_viewpoints(self):
-
-        # Get 12 point circular formation of view points locations for each of the actors
-
-        # Go over each location of each agent and check of the location doesn't lie in non-operational area and
-        # assign the closest location to the closest agent and update the agent to be engaged.
-
-        # do this for the viewpoints location for other agents till all the agents are assigned.
-
-        # if there are more agents than the actors then assign other agents with a 90 deg viewpoint than the initial
-        # ones
-
-        # if the actors are more than the agents, we only care till the time all agents have something to do.
-
-        pass
-
-    def get_actors_mapf_paths(self):
-
-        # We could either read the paths from a drawing on the image
-
-        # or come up with a random path for certain timestep
-
-        # Should we return the paths or store it in a property? WIP
-        pass
-
-    def run_tracking(self):
-        # Get the formation filming locations for all the actors.
-        # Assign agents to these filming locations as per the nearest locations
-        # Get a conflict resolved paths for these agents to reach the formation location
-        agents_paths_xyo = self.get_cbs_mapf()
-
-        # modify the paths such that all agents contain paths of same length
-        max_length_of_paths = max([len(path)] for path in agents_paths_xyo)[0]
-        for agent_id in range(self.num_agents):
-            agent_path_length = len(agents_paths_xyo[agent_id])
-            if agent_path_length == max_length_of_paths:
-                continue
-            else:
-                for ts in range(agent_path_length, max_length_of_paths):
-                    new_location = agents_paths_xyo[agent_id][ts - 1]
-                    agents_paths_xyo[agent_id].append(new_location)
-
-        # Update new location of all agents and actors from ts 0 to completion
-        # **********************************
-        bSavePlots = True  # Choose to save plots and create a video from it
-        directory = f"data/actors{self.num_actors}_agents{self.num_agents}_obs_den{self.PROB[1]}"
-        # **********************************
-
-        for ts in range(max_length_of_paths):
-            # Update the paths of the agents for corresponding timestep
-            moved_res = 0
-            for agent_id in range(self.num_agents):
-                new_position = agents_paths_xyo[agent_id][ts]
-                if ts > 0:
-                    moved_res = self.world.move_agent(new_position=new_position,
-                                                      agent_id=agent_id)
-                else:
-                    continue
-
-                if moved_res < 0:
-                    self.logger.error(f"Cannot move agent{agent_id} to {new_position}, "
-                                      f"Response {moved_res}; Timestep = {ts}")
-                    # raise Exception(f"Cannot move agent{agent_id} to new location({new_position}, Response move = {
-                    # moved_res}")
-            self.render_current_positions(timestep=ts, save_plots=bSavePlots, output_dir=directory)
-        # Render agent positions for each of the actor timestep
-        images_relative_filepaths = [
-            f'{directory}/plot_actors{self.num_actors}_agents{self.num_agents}_ts{timestep}.png'
-            for timestep in range(max_length_of_paths)]
-        if bSavePlots:
-            self.create_video(images_relative_filepaths,
-                              output_path=f'{directory}/actors{self.num_actors}_agents{self.num_agents}.mp4',
-                              fps=2)
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
-    n_agents = 3
-    n_actors = 3
+    n_agents = 5
+    n_actors = 5
 
-    SEED = 500
+    SEED = 123123
 
     env = MAPFFilming(num_agents=n_agents,
                       num_actors=n_actors,
                       world0=None,
                       grid_size=1.0,
                       size=(25, 25),
-                      obstacle_prob_range=(0.0001, 0.00011),
+                      obstacle_prob_range=(0.01, 0.011),
                       SEED=SEED,
                       )
 

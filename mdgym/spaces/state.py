@@ -35,6 +35,8 @@ class State:
         """
         self.agent_type = agent_type
         self.agent_id = agent_id
+        self.is_assigned: bool = False
+        self.assigned_to: int | None = None
 
         self.grid_size = grid_size
         self.operational_map = operational_map
@@ -64,6 +66,7 @@ class State:
         self.total_rotation_dirs = len(self.rotation_dirs)
 
         self.logger = logging.getLogger(__name__)
+        self.logger.info(f"{self.agent_type} with id: {self.agent_id} created successfully!")
 
     def get_new_translated_position_by_seq(self, translation_sequence: int) -> ThreeIntTuple:
         """

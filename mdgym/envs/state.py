@@ -105,15 +105,16 @@ class WorldState:
         agents_to_actors_tracking_ids = [None for _ in range(self.num_agents)]
 
         for agent_id in range(self.num_agents):
-            agents_to_actors_tracking_ids[agent_id] = self.agents_state.drones[agent_id].current_actor_id
+            agents_to_actors_tracking_ids[agent_id] = self.agents_state.drones[agent_id].assigned_to
 
         return agents_to_actors_tracking_ids
 
     def get_agent_to_actor_id_tracking_id(self, agent_id: int) -> BaseException | int | None:
         if agent_id not in range(self.num_agents):
             return BaseException("Invalid agent id")
-        return self.agents_state.drones[agent_id].current_actor_id
-    
+        # TODO: Update this function to return the corresponding actor assigned to an agent that is the drone
+        return self.agents_state.drones[agent_id].assigned_to
+
     @property
     def actors_curr_pos(self) -> List[ThreeIntTuple]:
         actors_curr_pos = [(-1, -1, -1) for _ in range(self.num_actors)]
@@ -152,6 +153,22 @@ class WorldState:
         if actor_id not in range(self.num_actors):
             return BaseException("actor_id not in range")
         return self.actors_state[actor_id].goal_position
+
+    def get_unassigned_agents(self) -> None | List[int]:
+        available_agents = []
+        for agent_id in range(self.num_agents):
+            if not self.agents_state.drones[agent_id].is_assigned:
+                available_agents.append(agent_id)
+
+        return available_agents
+
+    def get_assigned_agents(self) -> None | List[int]:
+        available_agents = []
+        for agent_id in range(self.num_agents):
+            if self.agents_state.drones[agent_id].is_assigned:
+                available_agents.append(agent_id)
+
+        return available_agents
 
     def diagonal_collision(self, agent_id: int, new_position_with_orient: ThreeIntTuple):
         """
