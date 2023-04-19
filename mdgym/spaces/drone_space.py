@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from mdgym.spaces.state import State
 from math import floor
 from mdgym.utils.types import ThreeIntTuple, TwoIntTupleList, Tuple, List, AgentType
@@ -48,7 +50,6 @@ class DroneAgentState(State):
         self.observation_space_size = observation_space_size
 
         # self.logger.(vars(self))
-
 
     @property
     def current_cam_coverage_locations(self) -> TwoIntTupleList:
@@ -115,7 +116,7 @@ class DroneAgentState(State):
             self,
             current_agents_position_arr: TwoIntTupleList,
             current_actor_position_arr: TwoIntTupleList
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         current_actor_x, current_actor_y, current_actor_orientation = self.current_position
         self.logger.debug(f"Current actor position: ({current_actor_x}, {current_actor_y})")
 
@@ -222,7 +223,7 @@ class DronesSpace:
                 grid_size=grid_size,
                 operational_map=operational_map,
                 start_position=start_positions[agentID],
-                goal_position=goal_positions[agentID] if goal_positions is not None else None,
+                goal_position=goal_positions[agentID] if goal_positions is not None else start_positions[agentID],
                 viewing_angle=viewing_angle,
                 viewing_range=viewing_range,
                 observation_space_size=observation_space_size,

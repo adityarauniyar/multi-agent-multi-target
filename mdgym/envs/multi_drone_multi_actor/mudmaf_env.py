@@ -142,7 +142,7 @@ class MUDMAFEnv(gym.Env):
 
     def get_agent_positions(self):
         result = []
-        for i in range(self.num_actors):
+        for i in range(self.num_agents):
             result.append(self.world.get_agents_position_by_id(i))
         return result
 
@@ -210,10 +210,10 @@ class MUDMAFEnv(gym.Env):
                 # RANDOMIZE THE GOALS OF AGENTS/ ACTOR START POSITIONS
                 actors0_start_pos = []
                 actors0_goal_pos = []
-                goal_counter = 1
+                actor_counter = 1
                 agent_regions = dict()
-                while goal_counter <= self.num_agents:
-                    corresponding_drone_pos = drone_start_positions[goal_counter - 1]
+                while actor_counter <= self.num_agents:
+                    corresponding_drone_pos = drone_start_positions[actor_counter - 1]
 
                     # valid_tiles = get_connected_region(world, agent_regions, corresponding_drone_pos[0],
                     #                                    corresponding_drone_pos[1])
@@ -230,10 +230,10 @@ class MUDMAFEnv(gym.Env):
                     if actor0_start_pos not in actors0_start_pos and actor0_goal_pos not in actors0_goal_pos:
                         actors0_start_pos.append(actor0_start_pos)
                         actors0_goal_pos.append(actor0_goal_pos)
-                        goal_counter += 1
-                        self.logger.debug(f"Drone{goal_counter - 1} Start@{corresponding_drone_pos}; "
-                                          f"Actor{goal_counter - 1} Start@{actor0_start_pos}."
-                                          f"Actor{goal_counter - 1} Goal@{actor0_goal_pos}.")
+                        actor_counter += 1
+                        self.logger.debug(f"Drone{actor_counter - 1} Start@{corresponding_drone_pos}; "
+                                          f"Actor{actor_counter - 1} Start@{actor0_start_pos}."
+                                          f"Actor{actor_counter - 1} Goal@{actor0_goal_pos}.")
 
                 self.obstacle_map_initial = world
                 self.initial_actor_starts = actors0_start_pos
@@ -281,10 +281,20 @@ class MUDMAFEnv(gym.Env):
         # RANDOMIZE THE GOALS OF AGENTS/ ACTOR START POSITIONS
         actors0_start_pos = []
         actors0_goal_pos = []
-        goal_counter = 1
+        actor_counter = 1
         agent_regions = dict()
-        while goal_counter <= self.num_agents:
-            corresponding_drone_pos = drone_start_positions[goal_counter - 1]
+        # while actor_counter <= self.num_actors:
+        #     start_x, start_y = np.random.randint(0, world.shape[0]), np.random.randint(0, world.shape[1])
+        #     end_x, end_y = np.random.randint(0, world.shape[0]), np.random.randint(0, world.shape[1])
+        #
+        #     if world[start_x, start_y] == 0 and world[end_x, end_y] == 0:
+        #         actors0_start_pos.append((start_x, start_y, 0))
+        #         actors0_goal_pos.append((end_x, end_y, 0))
+        #         agent_counter += 1
+        # self.logger.debug(f"Randomly generated Actor Starts positions are : {actors0_start_pos}; End: {actors0_goal_pos}")
+
+        while actor_counter <= self.num_actors:
+            corresponding_drone_pos = drone_start_positions[actor_counter - 1]
 
             # valid_tiles = get_connected_region(world, agent_regions, corresponding_drone_pos[0],
             #                                    corresponding_drone_pos[1])
@@ -301,11 +311,8 @@ class MUDMAFEnv(gym.Env):
             if actor0_start_pos not in actors0_start_pos and actor0_goal_pos not in actors0_goal_pos:
                 actors0_start_pos.append(actor0_start_pos)
                 actors0_goal_pos.append(actor0_goal_pos)
-                goal_counter += 1
-                self.logger.debug(f"Drone{goal_counter - 1} Start@{corresponding_drone_pos}; "
-                                  f"Actor{goal_counter - 1} Start@{actor0_start_pos}."
-                                  f"Actor{goal_counter - 1} Goal@{actor0_goal_pos}.")
-
+                actor_counter += 1
+        self.logger.debug(f"Randomly generated actor positions are : {actors0_start_pos}; End {actors0_goal_pos}")
         self.obstacle_map_initial = world
         self.initial_actor_starts = actors0_start_pos
         self.initial_actor_goals = actors0_goal_pos

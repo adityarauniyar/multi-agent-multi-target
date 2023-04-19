@@ -71,24 +71,24 @@ class MAPFFilming(MUDMAFEnv):
         current_actors_pos_xy = [(x, y) for x, y, _ in current_actors_pos]
 
         # Get assigned agents
-        assigned_agents = self.world.get_assigned_agents()
+        agent_ids = range(self.num_agents)
         # Get assigned agents start positions
-        assigned_agents_start_pos_xy = [(self.world.get_agents_position_by_id(agent_id)[0],
-                                         self.world.get_agents_position_by_id(agent_id)[1])
-                                        for agent_id in assigned_agents]
+        agents_start_pos_xy = [(self.world.get_agents_position_by_id(agent_id)[0],
+                                self.world.get_agents_position_by_id(agent_id)[1])
+                               for agent_id in agent_ids]
         # Get assigned agents goal positions
-        assigned_agents_goal_pos_xy = [(self.world.get_agent_goal_by_id(agent_id)[0],
-                                        self.world.get_agent_goal_by_id(agent_id)[1])
-                                       for agent_id in assigned_agents]
+        agents_goal_pos_xy = [(self.world.get_agent_goal_by_id(agent_id)[0],
+                               self.world.get_agent_goal_by_id(agent_id)[1])
+                              for agent_id in agent_ids]
 
         # Getting the cbs paths from this start and goal locations
-        self.logger.info(f"Getting CBS MAPF paths for \nAgents Starting at {assigned_agents_start_pos_xy}"
+        self.logger.info(f"Getting CBS MAPF paths for \nAgents Starting at {agents_start_pos_xy}"
                          f", and\n Actors at {current_actors_pos_xy}...")
         self.logger.info(f"Obstacle map as:  \n{self.obstacle_map_initial}")
 
         cbs_planner = CBSSolver(self.obstacle_map_initial,
-                                starts=assigned_agents_start_pos_xy,
-                                goals=assigned_agents_goal_pos_xy)
+                                starts=agents_start_pos_xy,
+                                goals=agents_goal_pos_xy)
 
         # Get the x y paths from start to goal location
         paths_xy = cbs_planner.find_solution()
@@ -98,6 +98,9 @@ class MAPFFilming(MUDMAFEnv):
         paths_xyo = paths_xy.copy()
         for agent_id in range(self.num_agents):
             tracking_actor_id = self.world.get_agent_to_actor_id_tracking_id(agent_id)
+            self.logger.debug(f"Current agent Id to update with orientation: {agent_id}, tracks {tracking_actor_id}")
+            assert tracking_actor_id is not None, f'Actor is not assigned to the current Agent {agent_id}'
+
             for ts in range(len(paths_xy[agent_id])):
                 x, y = paths_xy[agent_id][ts][0], paths_xy[agent_id][ts][1]
                 actor_x, actor_y, _ = self.world.get_actor_position_by_id(tracking_actor_id)
@@ -122,7 +125,7 @@ class MAPFFilming(MUDMAFEnv):
             self.world.actors_state[actor_id].assigned_to = None
         for agent_id in range(self.num_agents):
             self.world.agents_state.drones[agent_id].is_assigned = False
-            self.world.agents_state.drones[agent_id].assigned_to = agent_id
+            self.world.agents_state.drones[agent_id].assigned_to = None
 
         # Get 12 point circular formation of view points locations for each of the actors
         def get_circle_points(grid_location: ThreeIntTuple, radius: int):
@@ -136,7 +139,7 @@ class MAPFFilming(MUDMAFEnv):
                 if x < 0 or x >= np.shape(self.obstacle_map_initial)[0] \
                         or y < 0 or y >= np.shape(self.obstacle_map_initial)[1] \
                         or self.obstacle_map_initial[x, y] == 1:
-                    self.logger.debug(f"Viewpoint {(x, y)} is out of bounds, skipping...")
+                    self.logger.warn(f"Viewpoint {(x, y)} is out of bounds, skipping...")
                     continue
                 points.append((x, y))
             return points
@@ -145,7 +148,10 @@ class MAPFFilming(MUDMAFEnv):
         # assign the closest location to the closest agent and update the agent to be engaged.
         num_actors = self.num_actors
 
-        formation_radius = 4 * self.grid_size
+        formation_radius = 5 * self.grid_size
+
+        # Tuple in format: (path_cost, actor_id, agent_id, formation viewpoint(x,y))
+        view_point_allocations = []
 
         for actor_id in range(num_actors):
             # Get the formation of viewpoints for the current actor id
@@ -156,9 +162,6 @@ class MAPFFilming(MUDMAFEnv):
             # do this for the viewpoints location for other agents till all the agents are assigned.
             available_agents_id = self.world.get_unassigned_agents()
             self.logger.debug(f"Current available agents are {available_agents_id}")
-
-            # Tuple in format: (path_cost, actor_id, agent_id, formation viewpoint(x,y))
-            view_point_allocations = []
 
             for agent_id in available_agents_id:
                 curr_agent_pos_xy = (self.world.agents_state.drones[agent_id].current_position[0],
@@ -195,6 +198,10 @@ class MAPFFilming(MUDMAFEnv):
             self.logger.debug(f"view_point_allocations: {view_point_allocations}")
             path_cost, assign_actor_id, assign_agent_id, assign_viewpoint_xy = heapq.heappop(view_point_allocations)
 
+            while self.world.actors_state[assign_actor_id].is_assigned \
+                    and len(view_point_allocations) > 0:
+                self.logger.debug(f"view_point_allocations: {view_point_allocations}")
+                path_cost, assign_actor_id, assign_agent_id, assign_viewpoint_xy = heapq.heappop(view_point_allocations)
             self.logger.info(
                 f"Assigning: Agent {assign_agent_id} tracks {assign_actor_id} @ {assign_viewpoint_xy}")
 
@@ -207,6 +214,20 @@ class MAPFFilming(MUDMAFEnv):
 
         # TODO: Add logic to track actors such that if agents are more than actors they occupy 90deg viewpoints
         #   and if actors are more than agents, then do ? (WIP)
+        unassigned_agents = self.world.get_unassigned_agents()
+        self.logger.info(f"Unassigned agents are {unassigned_agents}")
+        while len(unassigned_agents) > 0 and len(view_point_allocations) > 0:
+            path_cost, assign_actor_id, assign_agent_id, assign_viewpoint_xy = heapq.heappop(view_point_allocations)
+            if self.world.agents_state.drones[assign_agent_id].is_assigned:
+                self.logger.debug(f"Agent {assign_agent_id} Already assigned actor: {assign_actor_id}")
+                continue
+            self.logger.info(
+                f"Assigning: Agent {assign_agent_id} tracks {assign_actor_id} @ {assign_viewpoint_xy}")
+
+            self.world.agents_state.drones[assign_agent_id].is_assigned = True
+            self.world.agents_state.drones[assign_agent_id].assigned_to = assign_actor_id
+            self.world.agents_state.drones[assign_agent_id].goal_position = (assign_viewpoint_xy[0],
+                                                                             assign_viewpoint_xy[1], 0)
 
         # if there are more agents than the actors then assign other agents with a 90 deg viewpoint than the initial
         # ones
@@ -224,7 +245,7 @@ class MAPFFilming(MUDMAFEnv):
         # Should we return the paths or store it in a property? WIP
         actors_starts_pos_xy = [(x, y) for x, y, _ in self.initial_actor_starts]
         actors_goals_pos_xy = [(x, y) for x, y, _ in self.initial_actor_goals]
-        self.logger.info(f"Getting paths for agents start @ {actors_starts_pos_xy}"
+        self.logger.info(f"Getting paths for actors start @ {actors_starts_pos_xy}"
                          f", and actors goals @ {actors_goals_pos_xy}")
 
         actors_planner = CBSSolver(my_map=self.obstacle_map_initial,
@@ -241,15 +262,17 @@ class MAPFFilming(MUDMAFEnv):
             -> tuple[List[List[tuple[ThreeIntTuple | TwoIntTuple]]], int]:
         # modify the paths such that all agents contain paths of same length
         max_length_of_paths = max([len(path)] for path in paths)[0]
-        for agent_id in range(self.num_agents):
-            agent_path_length = len(paths[agent_id])
-            if agent_path_length == max_length_of_paths:
+        for path_id in range(len(paths)):
+            print(f"Current path ID: {path_id}")
+            path_length = len(paths[path_id])
+            if path_length == max_length_of_paths:
                 continue
             else:
-                for ts in range(agent_path_length, max_length_of_paths):
-                    new_location = paths[agent_id][ts - 1]
-                    paths[agent_id].append(new_location)
+                for ts in range(path_length, max_length_of_paths):
+                    new_location = paths[path_id][ts - 1]
+                    paths[path_id].append(new_location)
 
+        self.logger.info(f"Normalized paths: {paths}")
         return paths, max_length_of_paths
 
     def run_tracking_for_current_actors_pos(self, global_timestep: int = 0, bSavePlots: bool = False, directory=None):
@@ -264,7 +287,7 @@ class MAPFFilming(MUDMAFEnv):
 
         # Update new location of all agents and actors from ts 0 to completion
         # **********************************
-        # Choose to save plots and create a video from it
+        # Choose to save plots and create a video from it if bSavePlots == True
         # **********************************
         local_timestep = 0
         for ts in range(max_length_of_paths):
@@ -350,7 +373,7 @@ class MAPFFilming(MUDMAFEnv):
         ax.add_patch(drone_icon)
 
     def render_current_positions(self, timestep: int, save_plots: bool = False, output_dir="data"):
-        self.logger.info("Rending current agent and actor positions...")
+
         random.seed(self.num_actors)
         fig, ax = plt.subplots()
         fig.suptitle(f"Timestep: {timestep}; Agents: {self.num_agents}; Actors: {self.num_actors}")
@@ -362,6 +385,9 @@ class MAPFFilming(MUDMAFEnv):
 
         current_agents_position = self.get_agent_positions()
         current_actors_position = self.get_actors_position()
+        self.logger.info(f"Rending current agent and actor positions...\n"
+                         f"Current Agent Pos: {current_agents_position}\n "
+                         f"Current Actor Pos: {current_agents_position}")
 
         agents_colors = [f'#{random.randint(0, 0xFFFFFF):06x}' for _ in range(self.num_agents)]
 
@@ -425,18 +451,20 @@ class MAPFFilming(MUDMAFEnv):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.INFO)
 
-    n_agents = 5
-    n_actors = 5
+    n_agents = 2
+    n_actors = 1
 
     SEED = 123123
+
+    # world_png = "../mdgym/envs/multi_drone_multi_actor/hawkins2DMap/grid-maps/obstacle-map-with-segmentation.png"
+    world_png = None
 
     env = MAPFFilming(num_agents=n_agents,
                       num_actors=n_actors,
                       world0=None,
-                      world_png="../mdgym/envs/multi_drone_multi_actor/hawkins2DMap/grid-maps/obstacle-map-with"
-                                "-segmentation.png",
+                      world_png=world_png,
                       grid_size=1.0,
                       size=(25, 25),
                       obstacle_prob_range=(0.01, 0.011),
