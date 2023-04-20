@@ -13,7 +13,6 @@ from mdgym.utils.map_postprocessing import *
 from mdgym.envs.objects.semantic_object import SemanticObject, ObjectType
 from mdgym.envs.multi_drone_multi_actor.hawkins2DMap.ENV import *
 
-
 ACTION_COST, IDLE_COST, GOAL_REWARD, COLLISION_REWARD, FINISH_REWARD, BLOCKING_COST = -0.3, -.5, 0.0, -2., 20., -1.
 
 JOINT = False  # True for joint estimation of rewards for close-by agents
@@ -51,6 +50,8 @@ class MUDMAFEnv(gym.Env):
     def __init__(
             self,
             num_agents=1,
+            agent_viewing_angle=90,
+            agent_viewing_range=15,
             num_actors=1,
             observation_size=10,
             world0=None,
@@ -79,6 +80,8 @@ class MUDMAFEnv(gym.Env):
         # Initialize member variables
         self.num_agents = num_agents
         self.num_actors = num_actors
+        self.viewing_angle = agent_viewing_angle
+        self.viewing_range = agent_viewing_range
 
         # a way of doing joint rewards
         self.individual_rewards = np.zeros(num_agents, dtype=float)
@@ -190,7 +193,8 @@ class MUDMAFEnv(gym.Env):
                 raise Exception("you gave a world with no goals!")
 
             if obstacle_map0 is None and self.world_png is not None:
-                self.OperationalSemanticObject = SemanticObject(ObjectType.OBSTACLE, self.world_png, OPERATIONAL_RGB_VALUE, 1)
+                self.OperationalSemanticObject = SemanticObject(ObjectType.OBSTACLE, self.world_png,
+                                                                OPERATIONAL_RGB_VALUE, 1)
 
                 self.obstacle_map0 = np.where(self.OperationalSemanticObject.presence_grid == 1, 0, 1)
                 self.logger.debug(f"Obstacle map assigned from the given image: \n{np.shape(self.obstacle_map0)}")
@@ -294,7 +298,7 @@ class MUDMAFEnv(gym.Env):
         # self.logger.debug(f"Randomly generated Actor Starts positions are : {actors0_start_pos}; End: {actors0_goal_pos}")
 
         while actor_counter <= self.num_actors:
-            corresponding_drone_pos = drone_start_positions[actor_counter - 1]
+            corresponding_drone_pos = drone_start_positions[0]
 
             # valid_tiles = get_connected_region(world, agent_regions, corresponding_drone_pos[0],
             #                                    corresponding_drone_pos[1])
@@ -325,6 +329,8 @@ class MUDMAFEnv(gym.Env):
         self.world = WorldState(grid_size=self.grid_size,
                                 operational_map=self.operational_map,
                                 agents_start_position=drone_start_positions,
+                                viewing_angle=self.viewing_angle,
+                                viewing_range=self.viewing_range,
                                 actors_start_position=actors0_start_pos,
                                 actors_goal_position=actors0_goal_pos,
                                 num_agents=self.num_agents,
@@ -493,7 +499,8 @@ class MUDMAFEnv(gym.Env):
         for agent in other_robots:
             other_locations.remove(self.world.get_agents_position_by_id(agent))
             # before removing
-            path_before = astar(world, self.world.get_agents_position_by_id(agent), self.world.get_agent_goal_by_id(agent),
+            path_before = astar(world, self.world.get_agents_position_by_id(agent),
+                                self.world.get_agent_goal_by_id(agent),
                                 robots=other_locations + [self.world.get_agents_position_by_id(agent_id)])
             # after removing
             path_after = astar(world, self.world.get_agent_goal_by_id(agent), self.world.get_agent_goal_by_id(agent),

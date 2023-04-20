@@ -47,7 +47,9 @@ class MAPFFilming(MUDMAFEnv):
             obstacle_prob_range=obstacle_prob_range,
             full_help=full_help,
             blank_world=blank_world,
-            SEED=SEED
+            SEED=SEED,
+            agent_viewing_angle=agent_viewing_angle,
+            agent_viewing_range=agent_viewing_range
         )
 
     @property
@@ -396,7 +398,7 @@ class MAPFFilming(MUDMAFEnv):
             viewing_angle = self.world.agents_state.drones[agent_id].viewing_angle
             viewing_range = self.world.agents_state.drones[agent_id].viewing_range
 
-            ax.add_artist(plt.Circle((x, y), radius=0.3, color=agents_colors[agent_id]))
+            ax.add_artist(plt.Circle((x, y), radius=0.6, color=agents_colors[agent_id]))
             # self.plot_drone_icon(ax, x, y, color=agents_colors[agent_id])
 
             wedge = Wedge((x, y), viewing_range, orientation - viewing_angle / 2, orientation + viewing_angle / 2,
@@ -453,7 +455,7 @@ class MAPFFilming(MUDMAFEnv):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
-    n_agents = 2
+    n_agents = 3
     n_actors = 1
 
     SEED = 123123
@@ -469,6 +471,8 @@ if __name__ == '__main__':
                       size=(25, 25),
                       obstacle_prob_range=(0.01, 0.011),
                       SEED=SEED,
+                      agent_viewing_range=15,
+                      agent_viewing_angle=120
                       )
 
     env.run_tracking_for_actor_paths()
