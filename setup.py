@@ -36,13 +36,8 @@ setup(
     author="Aditya Rauniyar",
     author_email="rauniyar@cmu.edu",
     classifiers=[
-        # Python 3.6 is minimally supported (only with basic mdgym environments and API)
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     description="Gym environment for drone with camera coverage that supports multiple drones and actors on the "
                 "environment.",
